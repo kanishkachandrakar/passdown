@@ -1,0 +1,276 @@
+import Link from "next/link";
+
+import { LiveRefresh } from "@/components/live-refresh";
+import { NeedRow } from "@/components/need-row";
+import { Remaining } from "@/components/remaining";
+import {
+  Card,
+  Chip,
+  DemoBadge,
+  EmptyState,
+  LinkButton,
+  Notice,
+  SectionHeading,
+} from "@/components/ui";
+import { areaOfPickup, proximityLabel, proximityRank } from "@/lib/campus";
+import { firstName, plural } from "@/lib/format";
+import { requireProfile } from "@/lib/session";
+import type { Item, Match, Need } from "@/lib/types";
+
+export const metadata = { title: "Home — Passdown" };
+
+type MatchWithItem = Match & { items: Item | null };
+
+export default async function HomePage({ searchParams }: PageProps<"/home">) {
+  const { profile, supabase } = await requireProfile();
+  const params = await searchParams;
+
+  const [needsResult, demandResult, reservationResult, handoffResult] =
+    await Promise.all([
+      supabase
+        .from("needs")
+        .select("*")
+        .eq("user_id", profile.id)
+        .in("status", ["open", "matched", "expired"])
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("demo_demand")
+        .select("*")
+        .order("waiting", { ascending: false })
+        .limit(6),
+      supabase
+        .from("reservations")
+        .select("*, items(*)")
+        .eq("claimant_id", profile.id)
+        .eq("status", "active")
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("handoffs")
+        .select("*, items(name)")
+        .eq("status", "scheduled")
+        .or(`giver_id.eq.${profile.id},receiver_id.eq.${profile.id}`)
+        .order("created_at", { ascending: false })
+        .limit(3),
+    ]);
+
+  const needs: Need[] = needsResult.data ?? [];
+
+  // Match counts per need, live items only — a match against something that
+  // has since been claimed is not a match worth counting.
+  let matches: MatchWithItem[] = [];
+  if (needs.length) {
+    const { data } = await supabase
+      .from("matches")
+      .select("*, items(*)")
+      .in(
+        "need_id",
+        needs.map((n) => n.id)
+      )
+      .order("match_score", { ascending: false });
+    matches = (data as MatchWithItem[] | null) ?? [];
+  }
+
+  const liveMatches = matches.filter((m) => m.items?.status === "available");
+
+  const countsByNeed = new Map<string, number>();
+  for (const match of liveMatches) {
+    countsByNeed.set(match.need_id, (countsByNeed.get(match.need_id) ?? 0) + 1);
+  }
+
+  const recentMatches = [...liveMatches]
+    .sort(
+      (a, b) =>
+        proximityRank(profile.campus_area, areaOfPickup(a.items?.pickup_location)) -
+        proximityRank(profile.campus_area, areaOfPickup(b.items?.pickup_location))
+    )
+    .slice(0, 3);
+
+  const reservation = reservationResult.data;
+  const handoffs = handoffResult.data ?? [];
+  const posted = params.posted;
+
+  return (
+    <div className="space-y-8 pd-in">
+      <LiveRefresh intervalMs={5000} />
+
+      {posted === "need" ? (
+        <Notice tone="accent">
+          Need posted. You&rsquo;ll be told the moment someone releases a match.
+        </Notice>
+      ) : null}
+
+      {/* An open reservation outranks everything — ten minutes is not long. */}
+      {reservation?.items ? (
+        <Link
+          href={`/reservations/${reservation.id}`}
+          className="block rounded-2xl border border-warn/25 bg-warn-soft p-4"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold uppercase tracking-wide text-warn">
+                You&rsquo;re holding this
+              </p>
+              <p className="mt-1 truncate font-medium text-ink">
+                {reservation.items.name}
+              </p>
+            </div>
+            <span className="shrink-0 text-2xl font-semibold text-warn">
+              <Remaining expiresAt={reservation.expires_at} />
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-warn">
+            Confirm before the timer runs out or it goes back to everyone else.
+          </p>
+        </Link>
+      ) : null}
+
+      {handoffs.map((handoff) => (
+        <Link
+          key={handoff.id}
+          href={`/handoffs/${handoff.id}`}
+          className="block rounded-2xl border border-accent-line bg-accent-soft p-4"
+        >
+          <p className="text-[13px] font-semibold uppercase tracking-wide text-accent-strong">
+            Handoff arranged
+          </p>
+          <p className="mt-1 font-medium text-ink">
+            {(handoff.items as { name: string } | null)?.name ?? "Item"}
+          </p>
+          <p className="mt-1 text-sm text-accent-strong">
+            Tap for the pickup spot and your 4-digit code.
+          </p>
+        </Link>
+      ))}
+
+      <section>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">
+          Hi {firstName(profile.name)} — what are you doing?
+        </h1>
+
+        <div className="mt-4 grid gap-3">
+          <BigAction
+            href="/need/new"
+            title="I need something"
+            body="Say what you're after. We'll watch for it and tell you the moment it appears."
+          />
+          <BigAction
+            href="/release"
+            title="I'm done with something"
+            body="Sixty seconds to release it. You'll see how many students are already waiting."
+          />
+        </div>
+      </section>
+
+      <section>
+        <SectionHeading
+          title="Your needs"
+          action={
+            needs.length ? (
+              <Link href="/need/new" className="text-sm font-medium text-accent">
+                Add
+              </Link>
+            ) : null
+          }
+        />
+
+        {needs.length === 0 ? (
+          <EmptyState
+            title="Nothing on your list yet"
+            body="Post what you're looking for. It sits quietly until someone on campus releases a match."
+            action={
+              <LinkButton href="/need/new" variant="soft" size="sm">
+                Post a need
+              </LinkButton>
+            }
+          />
+        ) : (
+          <ul className="space-y-2">
+            {needs.map((need) => (
+              <li key={need.id}>
+                <NeedRow need={need} matchCount={countsByNeed.get(need.id) ?? 0} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {recentMatches.length > 0 ? (
+        <section>
+          <SectionHeading title="Closest matches" hint="Nearest first." />
+          <ul className="space-y-2">
+            {recentMatches.map((match) => (
+              <li key={match.id}>
+                <Link
+                  href={`/items/${match.item_id}`}
+                  className="block rounded-2xl border border-accent-line bg-surface p-3.5 transition hover:border-accent"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate font-medium text-ink">
+                      {match.items?.name}
+                    </p>
+                    <Chip tone="accent">Match</Chip>
+                  </div>
+                  <p className="mt-1 text-[13px] text-muted">
+                    {proximityLabel(
+                      profile.campus_area,
+                      areaOfPickup(match.items?.pickup_location)
+                    )}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {demandResult.data && demandResult.data.length > 0 ? (
+        <section>
+          <SectionHeading
+            title="Students near you need"
+            action={<DemoBadge />}
+            hint="Sample demand for the demo campus, not live usage."
+          />
+          <Card className="divide-y divide-line py-0">
+            {demandResult.data.map((row) => (
+              <div
+                key={row.item_name}
+                className="flex items-center justify-between gap-3 py-2.5"
+              >
+                <span className="truncate text-[15px] text-ink">{row.item_name}</span>
+                <span className="shrink-0 text-[13px] text-muted">
+                  {row.waiting} {plural(row.waiting, "student")} waiting
+                </span>
+              </div>
+            ))}
+          </Card>
+          <p className="mt-2 px-1 text-[12px] leading-relaxed text-faint">
+            Sitting on any of these? Releasing one takes about a minute.
+          </p>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function BigAction({
+  href,
+  title,
+  body,
+}: {
+  href: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="block rounded-2xl border border-line bg-surface p-4 transition hover:border-accent"
+    >
+      <p className="text-[17px] font-semibold text-ink">{title}</p>
+      <p className="mt-1 text-sm leading-relaxed text-muted">{body}</p>
+    </Link>
+  );
+}

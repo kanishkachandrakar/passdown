@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Scratch files the Supabase CLI writes while the local stack is running,
+    // and the generated DB types — neither is ours to lint.
+    "supabase/.temp/**",
+    "supabase/.branches/**",
+    "src/lib/database.types.ts",
   ]),
 ]);
 
