@@ -1,1 +1,67 @@
-@AGENTS.md
+# CLAUDE.md
+
+Read this first, every session. Then read `docs/spec.md` before writing any feature code.
+
+## What this is
+
+**Passdown** — a campus-only, verified-student exchange for things students are done with.
+Tagline: *Your campus already has one.*
+
+Built for the Stellic Pathfinders Challenge. Submission deadline **Aug 21, 2026**. Target submit date **Aug 20**.
+
+## The one thing that matters
+
+This full loop must work end to end before anything else is built:
+
+1. Student A posts a Need
+2. Student B releases a matching item
+3. System auto-matches and notifies A
+4. A claims → 10-minute reservation lock → item unavailable to everyone else
+5. Both get handoff details + 4-digit code
+6. Both confirm → complete
+
+If a task doesn't serve those six steps, it waits.
+
+## Positioning — keep this visible in the UI
+
+Two incumbents exist. We beat them differently:
+
+- **vs Facebook Marketplace:** it's city-wide and full of strangers. We're campus-scoped and verified. → *Always show distance/campus area on item and match cards. Sort matches by proximity.*
+- **vs the campus free-and-for-sale group chat:** it has no state — the same fridge gets promised to four people. We have item states and a single-claim lock. → *The reservation lock must be visibly demonstrable: claim in one tab, item goes unavailable in another.*
+
+These two proofs are the demo. Don't let them get buried.
+
+## Hard rules
+
+1. **Never fabricate traction.** No "25,000 items saved". Sample data is labelled **Demo Campus Preview** in the UI. Personal stats only ("2 completed handoffs").
+2. **Single claim is enforced in Postgres**, not in React. Use the `claim_item` RPC. Two tabs clicking Claim must produce exactly one reservation.
+3. **Email verification is not `.edu`-only.** Universities outside the US use other domains (vit.ac.in, unam.mx, etc.). Verify any institutional domain.
+4. **Mobile-first.** Design at 390px and scale up.
+5. **No new dependencies** without a reason written in the commit message.
+
+## Do not build
+
+chat/messaging · delivery/shipping/storage · payments or escrow · bidding/offers/negotiation · star ratings · followers or social feed · admin dashboard · analytics · bundles · life-stage suggestions · "benefits"/meal-swipe screens · AI chatbot
+
+## Stack
+
+Next.js (App Router) + TypeScript + Tailwind + Supabase (auth, Postgres, storage) + Vercel.
+Schema lives in `supabase/schema.sql`. Matching logic in `src/lib/matching.ts`.
+
+## Conventions
+
+- Server Components by default; `"use client"` only where interaction requires it
+- Data access through `src/lib/supabase/{client,server}.ts` — no raw `createClient` calls in components
+- Types generated from the DB, not hand-written duplicates
+- Tailwind only, no CSS modules
+- One accent colour, defined once in `tailwind.config.ts`
+
+## Commit discipline
+
+Commit several times a day with real messages. The competition requires the project to be built between Jul 20 and Aug 21 — the commit history is the evidence. Never squash the week into one commit.
+
+## Current status
+
+Update this line as you go so future sessions know where things stand.
+
+> **Status:** scaffold not yet started.
