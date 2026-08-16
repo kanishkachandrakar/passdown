@@ -50,7 +50,7 @@ export default async function ProfilePage() {
   return (
     <div className="space-y-8 pd-in">
       <section>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">
+        <h1 className="break-words text-2xl font-semibold tracking-tight text-ink">
           {profile.name}
         </h1>
         <p className="mt-1 text-[15px] text-muted">

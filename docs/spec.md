@@ -82,11 +82,15 @@ Plain scoring function, no ML. See `src/lib/matching.ts`.
 - item status is `available`
 - `available_until` >= `needed_by` (or `needed_by` is null)
 - price fits: free item always fits; priced item fails if `free_only` or `price > max_price`
+- **the name is relevant** — the item name must match the need exactly, contain
+  it (or be contained by it), or share a significant word
 
 **Score:**
 | Signal | Points |
 |--------|--------|
 | exact item name match (normalised) | 50 |
+| one name contains the other | 35 |
+| names share a significant word | 25 |
 | same category | 20 |
 | item is free | 15 |
 | condition meets preference | 10 |
@@ -94,6 +98,11 @@ Plain scoring function, no ML. See `src/lib/matching.ts`.
 | available well before needed-by | 5 |
 
 Threshold: 40. Below that, no match row.
+
+The name filter is not redundant with the threshold. Category (20) + free (15) +
+date slack (5) is exactly 40, so without it a desk lamp matches a request for a
+mini fridge on the strength of being free furniture available in time. One bad
+match like that costs more trust than ten missed good ones.
 
 ## 7. Item states
 

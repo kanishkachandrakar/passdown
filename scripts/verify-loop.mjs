@@ -294,6 +294,103 @@ async function main() {
     anaMatches?.[0]?.items?.name === "Mini fridge"
   );
 
+  step("3b. Matching says no when it should");
+
+  const lampAgainstFridgeNeed = matchItemToNeeds(
+    {
+      id: "x",
+      owner_id: bo.id,
+      name: "Desk lamp",
+      category: "Dorm",
+      condition: "like_new",
+      is_free: true,
+      price: 0,
+      pickup_location: "block-b-lobby",
+      available_until: dayOffset(21),
+    },
+    [
+      {
+        id: anaNeed.id,
+        user_id: ana.id,
+        item_name: "Mini fridge",
+        category: "Dorm",
+        free_only: true,
+        max_price: null,
+        needed_by: dayOffset(14),
+        preferred_condition: null,
+        campus_area: "block-a",
+      },
+    ],
+    "block-b"
+  );
+  check(
+    "a free desk lamp does not 'match' a request for a mini fridge",
+    lampAgainstFridgeNeed.length === 0,
+    `scored ${lampAgainstFridgeNeed[0]?.match_score}`
+  );
+
+  const bedsideLamp = matchItemToNeeds(
+    {
+      id: "y",
+      owner_id: bo.id,
+      name: "Bedside lamp",
+      category: "Dorm",
+      condition: "good",
+      is_free: true,
+      price: 0,
+      pickup_location: "block-b-lobby",
+      available_until: dayOffset(21),
+    },
+    [
+      {
+        id: "n2",
+        user_id: ana.id,
+        item_name: "Desk lamp",
+        category: "Dorm",
+        free_only: true,
+        max_price: null,
+        needed_by: dayOffset(14),
+        preferred_condition: null,
+        campus_area: "block-a",
+      },
+    ],
+    "block-b"
+  );
+  check(
+    "but a bedside lamp still matches a need for a desk lamp",
+    bedsideLamp.length === 1,
+    `${bedsideLamp.length} matches`
+  );
+
+  const pricedTooHigh = matchItemToNeeds(
+    {
+      id: "z",
+      owner_id: bo.id,
+      name: "Mini fridge",
+      category: "Dorm",
+      condition: "good",
+      is_free: false,
+      price: 5000,
+      pickup_location: "block-b-lobby",
+      available_until: dayOffset(21),
+    },
+    [
+      {
+        id: "n3",
+        user_id: ana.id,
+        item_name: "Mini fridge",
+        category: "Dorm",
+        free_only: false,
+        max_price: 2000,
+        needed_by: dayOffset(14),
+        preferred_condition: null,
+        campus_area: "block-a",
+      },
+    ],
+    "block-b"
+  );
+  check("an item over the price limit is filtered out", pricedTooHigh.length === 0);
+
   /* --------------------------------------------- 4. THE CONCURRENCY TEST */
 
   step("4. Ana and Cy claim the same fridge at the same instant");

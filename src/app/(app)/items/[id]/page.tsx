@@ -82,7 +82,7 @@ export default async function ItemPage({ params }: PageProps<"/items/[id]">) {
 
       <div>
         <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">
+          <h1 className="min-w-0 break-words text-2xl font-semibold tracking-tight text-ink">
             {item.name}
           </h1>
           <span className="shrink-0 text-xl font-semibold text-accent">

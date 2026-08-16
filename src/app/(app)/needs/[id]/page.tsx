@@ -37,7 +37,38 @@ export default async function NeedPage({ params }: PageProps<"/needs/[id]">) {
     .select("*, items(*)")
     .eq("need_id", id);
 
-  const matches = ((data as MatchWithItem[] | null) ?? [])
+  const allMatches = (data as MatchWithItem[] | null) ?? [];
+  const itemIds = allMatches.map((m) => m.item_id);
+
+  /*
+    A match whose item you are already holding must not read as "no matches".
+    Someone who opens this screen mid-claim is looking for the fridge they just
+    claimed, so the way back to it lives at the top.
+  */
+  const [{ data: myReservations }, { data: myHandoffs }] = itemIds.length
+    ? await Promise.all([
+        supabase
+          .from("reservations")
+          .select("id, item_id, status")
+          .in("item_id", itemIds)
+          .eq("claimant_id", profile.id)
+          .in("status", ["active", "confirmed"]),
+        supabase
+          .from("handoffs")
+          .select("id, item_id, status")
+          .in("item_id", itemIds)
+          .eq("receiver_id", profile.id),
+      ])
+    : [{ data: [] }, { data: [] }];
+
+  const handoffByItem = new Map((myHandoffs ?? []).map((h) => [h.item_id, h]));
+  const reservationByItem = new Map((myReservations ?? []).map((r) => [r.item_id, r]));
+
+  const yours = allMatches.filter(
+    (m) => handoffByItem.has(m.item_id) || reservationByItem.has(m.item_id)
+  );
+
+  const matches = allMatches
     .filter((m) => m.items?.status === "available")
     .sort(
       (a, b) =>
@@ -69,7 +100,7 @@ export default async function NeedPage({ params }: PageProps<"/needs/[id]">) {
           {need.needed_by ? ` · by ${formatDate(need.needed_by)}` : ""}
         </p>
         <div className="mt-2.5">
-          <Chip tone={matches.length ? "accent" : "neutral"}>
+          <Chip tone={matches.length || yours.length ? "accent" : "neutral"}>
             {matches.length
               ? `${matches.length} ${plural(matches.length, "match", "es")}`
               : NEED_STATUS_LABEL[need.status]}
@@ -77,7 +108,33 @@ export default async function NeedPage({ params }: PageProps<"/needs/[id]">) {
         </div>
       </div>
 
-      {matches.length === 0 ? (
+      {yours.map((match) => {
+        const handoff = handoffByItem.get(match.item_id);
+        const reservation = reservationByItem.get(match.item_id);
+        const href = handoff
+          ? `/handoffs/${handoff.id}`
+          : `/reservations/${reservation!.id}`;
+
+        return (
+          <Link
+            key={match.id}
+            href={href}
+            className="block rounded-2xl border border-accent-line bg-accent-soft p-4"
+          >
+            <p className="text-[13px] font-semibold uppercase tracking-wide text-accent-strong">
+              {handoff ? "Handoff arranged" : "You're holding this"}
+            </p>
+            <p className="mt-1 font-medium text-ink">{match.items?.name}</p>
+            <p className="mt-1 text-sm text-accent-strong">
+              {handoff
+                ? "Tap for the pickup spot and your 4-digit code."
+                : "Tap to confirm before your ten minutes run out."}
+            </p>
+          </Link>
+        );
+      })}
+
+      {matches.length === 0 && yours.length === 0 ? (
         <EmptyState
           title="No live matches yet"
           body="Your need stays open. The moment someone releases something that fits, it appears here and you get told."

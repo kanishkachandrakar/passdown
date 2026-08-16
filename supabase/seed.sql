@@ -1,16 +1,12 @@
 -- Passdown demo seed
 --
 -- IMPORTANT: everything here is sample data for the demo campus.
--- The UI must label any screen fed by this data as "Demo Campus Preview".
--- Do not present these numbers as real usage anywhere in the video or write-up.
+-- The UI labels any screen fed by this data "Demo Campus Preview".
+-- Do not present these numbers as real usage in the video or the write-up.
 --
--- Steps:
---   1. Sign up two accounts through the app UI (e.g. demo.a@<your-domain>, demo.b@<your-domain>)
---   2. Grab their ids: select id, email from profiles;
---   3. Paste them below, then run this file.
-
--- \set user_a '00000000-0000-0000-0000-000000000000'
--- \set user_b '11111111-1111-1111-1111-111111111111'
+-- This file runs automatically on `npm run db:reset`. It only fills the
+-- demand list — accounts, needs and items are created through the app so
+-- that every row in the demo went through the real code path.
 
 -- ------------------------------------------------ demand counts for the home screen
 
@@ -24,18 +20,26 @@ insert into demo_demand (item_name, waiting) values
   ('Laundry hamper',         2)
 on conflict (item_name) do update set waiting = excluded.waiting;
 
--- ------------------------------------------------ a few live items from user B
+-- ------------------------------------------------ setting up the live demo
+--
+-- 1. Sign up two accounts through the app at the same institutional domain,
+--    e.g. demo.a@vit.ac.in and demo.b@vit.ac.in. Locally, the six-digit codes
+--    arrive in Mailpit at http://127.0.0.1:54324.
+-- 2. Put them in different blocks during onboarding — A in Block A, B in
+--    Block B — so the walk time on the match card is a real number.
+-- 3. As A, post a Need for a mini fridge, free only, needed in two weeks.
+-- 4. Leave it there. The live demo is: B releases the fridge, A's screen shows
+--    the match, A claims it, and the item locks in front of the audience.
+--
+-- `pickup_location` values are ids from src/lib/campus.ts, not free text —
+-- 'block-b-lobby', 'library-entrance', and so on. That is what makes the walk
+-- time computable instead of decorative.
 
+-- Optional extra supply, so Browse isn't empty on camera. Fill in a real
+-- owner id from `select id, email from profiles;` before running these.
+--
 -- insert into items (owner_id, name, category, condition, is_free, price, pickup_location, available_until)
 -- values
---   (:'user_b', 'Desk lamp',   'Dorm',        'good',     true, 0, 'Library Entrance',      current_date + 14),
---   (:'user_b', 'Storage bins','Dorm',        'like_new', true, 0, 'Residence Hall Lobby',  current_date + 10),
---   (:'user_b', 'Monitor',     'Electronics', 'good',     false, 1500, 'Student Center',     current_date + 7);
-
--- ------------------------------------------------ an open need from user A
-
--- insert into needs (user_id, item_name, category, free_only, needed_by)
--- values (:'user_a', 'Mini fridge', 'Dorm', true, current_date + 14);
-
--- Leave the mini fridge UNRELEASED. The live demo is: user B releases it,
--- user A's screen shows Match Found, A claims it, the item locks.
+--   ('<user_b_id>', 'Desk lamp',    'Dorm',        'good',     true,  0,    'library-entrance', current_date + 14),
+--   ('<user_b_id>', 'Storage bins', 'Dorm',        'like_new', true,  0,    'block-b-lobby',    current_date + 10),
+--   ('<user_b_id>', 'Monitor',      'Electronics', 'good',     false, 1500, 'student-center',   current_date + 7);

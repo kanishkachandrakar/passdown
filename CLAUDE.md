@@ -54,7 +54,9 @@ Schema lives in `supabase/schema.sql`. Matching logic in `src/lib/matching.ts`.
 - Data access through `src/lib/supabase/{client,server}.ts` — no raw `createClient` calls in components
 - Types generated from the DB, not hand-written duplicates
 - Tailwind only, no CSS modules
-- One accent colour, defined once in `tailwind.config.ts`
+- One accent colour, defined once. Tailwind v4 is CSS-first and has no
+  `tailwind.config.ts` — the tokens live in the `@theme` block at the top of
+  `src/app/globals.css`
 
 ## Commit discipline
 
@@ -64,7 +66,14 @@ Commit several times a day with real messages. The competition requires the proj
 
 Update this line as you go so future sessions know where things stand.
 
-> **Status:** scaffold not yet started.
+> **Status:** the full loop is built and verified end to end. Every screen in
+> the spec exists; matching, the 10-minute lock, handoff codes and both-sides
+> confirm all work against real Postgres. `npm run verify` (41 database checks,
+> including 10 rounds of 12 simultaneous claims) and `npm run verify:ui` (41
+> screen checks) both pass, as do `npm run build` and `npm run lint`.
+>
+> Not done: deploy to Vercel with a hosted Supabase project, and the Aug 18–19
+> items — real pilot, demo video, write-up. Nothing is blocked on code.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -135,7 +135,8 @@ export function VerifyForm({ next }: { next: string }) {
         Check your email
       </h1>
       <p className="mt-2 text-[15px] leading-relaxed text-muted">
-        We sent a six-digit code to <span className="text-ink">{email}</span>.
+        We sent a six-digit code to{" "}
+        <span className="break-all text-ink">{email}</span>.
       </p>
 
       <form onSubmit={verifyCode} className="mt-7 space-y-4">

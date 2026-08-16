@@ -50,6 +50,38 @@ export const MATCH_THRESHOLD = 40;
 const normalise = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ");
 
+/** Words too common to mean anything on their own. */
+const STOP_WORDS = new Set(["the", "a", "an", "my", "for", "and", "with", "old", "new"]);
+
+const significantWords = (s: string) =>
+  new Set(normalise(s).split(" ").filter((w) => w.length >= 3 && !STOP_WORDS.has(w)));
+
+/**
+ * How close are these two names? 0 means unrelated.
+ *
+ * Kept separate from the rest of the scoring because a zero here is fatal:
+ * see the hard filter in scoreMatch.
+ */
+function nameScore(itemName: string, needName: string): { points: number; reason: string } | null {
+  const item = normalise(itemName);
+  const need = normalise(needName);
+
+  if (item === need) return { points: 50, reason: "Exactly what you asked for" };
+
+  if (item.includes(need) || need.includes(item)) {
+    return { points: 35, reason: "Close match to your need" };
+  }
+
+  const itemWords = significantWords(item);
+  const shared = [...significantWords(need)].filter((w) => itemWords.has(w));
+
+  if (shared.length > 0) {
+    return { points: 25, reason: `Matches on "${shared[0]}"` };
+  }
+
+  return null;
+}
+
 /** Hard filters. If any fail, there is no match at all. */
 function passesFilters(item: Item, need: Need): boolean {
   if (item.owner_id === need.user_id) return false;
@@ -74,19 +106,20 @@ export function scoreMatch(
 ): MatchResult | null {
   if (!passesFilters(item, need)) return null;
 
-  let score = 0;
-  const reasons: string[] = [];
+  /*
+    Hard filter: the name has to be relevant.
 
-  const itemName = normalise(item.name);
-  const needName = normalise(need.item_name);
+    Without this, category (20) + free (15) + date slack (5) lands on exactly
+    the threshold, so a desk lamp "matches" a request for a mini fridge purely
+    for being free furniture available in time. A student who asked for a
+    fridge and got told about a lamp stops trusting the matches, and the whole
+    product is the matches.
+  */
+  const name = nameScore(item.name, need.item_name);
+  if (!name) return null;
 
-  if (itemName === needName) {
-    score += 50;
-    reasons.push("Exactly what you asked for");
-  } else if (itemName.includes(needName) || needName.includes(itemName)) {
-    score += 35;
-    reasons.push("Close match to your need");
-  }
+  let score = name.points;
+  const reasons: string[] = [name.reason];
 
   if (item.category === need.category) {
     score += 20;
