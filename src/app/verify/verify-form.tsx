@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Button, Field, Input, Notice } from "@/components/ui";
@@ -10,10 +10,8 @@ import { createClient } from "@/lib/supabase/client";
 
 type Step = "email" | "code";
 
-export function VerifyForm() {
+export function VerifyForm({ next }: { next: string }) {
   const router = useRouter();
-  const params = useSearchParams();
-  const next = params.get("next") ?? "/home";
 
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
@@ -92,7 +90,7 @@ export function VerifyForm() {
         <form onSubmit={sendCode} className="mt-7 space-y-4">
           <Field
             label="University email"
-            hint="Any institution — vit.ac.in, unam.mx, ox.ac.uk, nyu.edu. Not a personal address."
+            hint="Any institution, anywhere — it doesn't have to end in .edu. vit.ac.in, unam.mx and ox.ac.uk all work. Just not a personal address."
             htmlFor="email"
           >
             <Input

@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "verify": "node --env-file=.env.local scripts/verify-loop.mjs",
+    "db:start": "npx --yes supabase@latest start",
+    "db:reset": "npx --yes supabase@latest db reset",
+    "db:types": "npx --yes supabase@latest gen types typescript --local > src/lib/database.types.ts",
+    "verify:ui": "node --env-file=.env.local scripts/verify-ui.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

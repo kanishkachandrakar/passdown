@@ -15,6 +15,8 @@ const isPublic = (pathname: string) =>
  * back. Without this, a student who last opened Passdown weeks ago would be
  * bounced to the sign-in screen even though their session is still valid —
  * Supabase refresh tokens are long-lived, but only if something redeems them.
+ *
+ * Called from `src/proxy.ts` (what earlier Next versions called middleware).
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
