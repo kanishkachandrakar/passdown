@@ -118,6 +118,26 @@ export function proximityLabel(
 }
 
 /**
+ * The one-line "where and how far" that goes on every card.
+ *
+ * Names the pickup point rather than its area, because "3 min walk — Student
+ * Center · Student Center" is what you get from pairing the two, and half of
+ * it then truncates on a phone.
+ */
+export function pickupProximityLine(
+  viewerAreaId: string | null | undefined,
+  pickupId: string | null | undefined
+): string {
+  const pickup = pickupById(pickupId);
+  if (!pickup) return pickupLabel(pickupId);
+
+  const mins = walkMinutes(viewerAreaId, pickup.areaId);
+  if (mins === null) return pickup.label;
+  if (mins === 0) return `Your block — ${pickup.label}`;
+  return `${mins} min walk — ${pickup.label}`;
+}
+
+/**
  * Sort key for match and item lists. Proximity first — that is the entire
  * argument against a city-wide marketplace. Unknown areas sort last.
  */

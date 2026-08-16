@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ItemCard } from "@/components/item-card";
-import { Card, LinkButton, Notice } from "@/components/ui";
+import { LinkButton, Notice } from "@/components/ui";
 import { plural } from "@/lib/format";
 import { requireProfile } from "@/lib/session";
 
@@ -73,9 +73,7 @@ export default async function ReleaseDonePage({
         )}
       </div>
 
-      <Card className="p-3">
-        <ItemCard item={item} viewerArea={profile.campus_area} href={`/items/${item.id}`} />
-      </Card>
+      <ItemCard item={item} viewerArea={profile.campus_area} href={`/items/${item.id}`} />
 
       <Notice>
         Passdown never handles money. If you set a price, it changes hands in

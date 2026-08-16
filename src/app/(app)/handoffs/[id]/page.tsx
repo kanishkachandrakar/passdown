@@ -84,13 +84,15 @@ export default async function HandoffPage({ params }: PageProps<"/handoffs/[id]"
             areaOfPickup(item.pickup_location)
           )}
         />
-        <Row label="When" value="Agree it in person — this is a walk, not a delivery." />
         {!item.is_free ? (
-          <Row
-            label="Payment"
-            value={`${formatPrice(false, item.price)} in person. Passdown never handles money.`}
-          />
+          <Row label="Payment" value={`${formatPrice(false, item.price)}, in person`} />
         ) : null}
+
+        <p className="border-t border-line pt-2.5 text-[13px] leading-relaxed text-muted">
+          Agree a time between yourselves — this is a walk across campus, not a
+          delivery.
+          {!item.is_free ? " Passdown never handles the money." : ""}
+        </p>
       </Card>
 
       <div className="flex gap-2">

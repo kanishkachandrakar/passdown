@@ -115,7 +115,13 @@ src/lib/campus.ts        the campus map — walk times come from here
 src/proxy.ts             session refresh and the auth guard
 scripts/verify-loop.mjs  the database contract, including the claim race
 scripts/verify-ui.mjs    every screen, signed in as a real student
+scripts/screenshot-setup.mjs  seeds a realistic signed-in state for the demo
 ```
+
+`screenshot-setup.mjs` builds a campus mid-loop — two students, three items, a
+need with matches, one live hold and one arranged handoff — and prints the
+session cookies and the paths worth capturing. Useful for the demo video, and
+for checking every screen at 390px. `--clean` removes what it made.
 
 ## Stack
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Chip } from "@/components/ui";
-import { areaOfPickup, pickupLabel, proximityLabel } from "@/lib/campus";
+import { pickupProximityLine } from "@/lib/campus";
 import { availabilityLabel, formatPrice, ITEM_STATUS_LABEL } from "@/lib/format";
 import { CONDITION_LABEL, type Item } from "@/lib/types";
 
@@ -26,7 +26,6 @@ export function ItemCard({
   viewerArea: string | null;
   href?: string;
 }) {
-  const itemArea = areaOfPickup(item.pickup_location);
   const unavailable = item.status !== "available";
 
   const body = (
@@ -42,7 +41,7 @@ export function ItemCard({
         </div>
 
         <p className="mt-0.5 truncate text-[13px] text-muted">
-          {proximityLabel(viewerArea, itemArea)} · {pickupLabel(item.pickup_location)}
+          {pickupProximityLine(viewerArea, item.pickup_location)}
         </p>
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5">

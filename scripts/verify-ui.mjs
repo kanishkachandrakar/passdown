@@ -247,7 +247,7 @@ async function main() {
   check("the post-release screen renders", releaseDone.status === 200);
   check(
     "it reports how many students already need this",
-    /1 student already needs this/i.test(visible(releaseDone.body)),
+    /\d+ students? already needs? this/i.test(visible(releaseDone.body)),
     visible(releaseDone.body).match(/.{0,50}already need.{0,20}/)?.[0]
   );
   check(
@@ -337,9 +337,9 @@ async function main() {
     visible(handoffPage.body).includes("Block B Lobby")
   );
   check(
-    "it says Passdown never handles money",
-    visible(handoffPage.body).includes("walk, not a delivery") ||
-      visible(handoffPage.body).includes("never handles money")
+    "it says this is a walk across campus, not a delivery",
+    visible(handoffPage.body).includes("not a delivery"),
+    visible(handoffPage.body).match(/.{0,60}delivery.{0,20}/)?.[0]
   );
 
   await ana.client.rpc("confirm_handoff", { p_handoff_id: handoff.id });

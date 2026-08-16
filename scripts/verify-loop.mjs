@@ -270,7 +270,14 @@ async function main() {
   step("3. Matching runs");
   const results = await runMatching(fridge.id);
 
-  check("both open needs matched", results.length === 2, `got ${results.length}`);
+  // Asserted by identity, not by count: other students' open needs may exist
+  // on this campus and legitimately match too.
+  const matchedNeedIds = new Set(results.map((r) => r.need_id));
+  check(
+    "both of these students' open needs matched",
+    matchedNeedIds.has(anaNeed.id) && matchedNeedIds.has(cyNeed.id),
+    `matched ${results.length} needs`
+  );
   check(
     "score clears the threshold",
     results.every((r) => r.match_score >= 40),
