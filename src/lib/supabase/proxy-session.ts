@@ -8,7 +8,10 @@ import { isConfigured } from "./env";
 const PUBLIC_PATHS = ["/", "/verify"];
 
 const isPublic = (pathname: string) =>
-  PUBLIC_PATHS.includes(pathname) || pathname.startsWith("/api/maintenance");
+  PUBLIC_PATHS.includes(pathname) ||
+  // The email link lands here with no session yet — that is the whole point.
+  pathname.startsWith("/auth/callback") ||
+  pathname.startsWith("/api/maintenance");
 
 /**
  * Refreshes the auth session on every request and writes the rotated cookies

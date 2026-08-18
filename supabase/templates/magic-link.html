@@ -1,0 +1,38 @@
+<!--
+  Sign-in email.
+
+  Supabase's default template is a link and nothing else, which breaks the
+  verify screen — that screen asks for six digits, so the six digits have to be
+  in the email. Both routes are offered here: type the code, or tap the link.
+
+  {{ .Token }}           the 6-digit code
+  {{ .ConfirmationURL }} the one-tap link, which lands on /auth/callback
+-->
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 420px; margin: 0 auto; padding: 32px 24px; color: #121815;">
+  <p style="margin: 0 0 4px; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #0a6b4c;">
+    Passdown
+  </p>
+
+  <h1 style="margin: 0 0 16px; font-size: 24px; line-height: 1.2; font-weight: 600;">
+    Your sign-in code
+  </h1>
+
+  <p style="margin: 0 0 20px; font-size: 15px; line-height: 1.6; color: #5d6b65;">
+    Enter these six digits on the verify screen:
+  </p>
+
+  <p style="margin: 0 0 24px; font-size: 40px; font-weight: 600; letter-spacing: 0.2em; font-variant-numeric: tabular-nums;">
+    {{ .Token }}
+  </p>
+
+  <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #5d6b65;">
+    Or just
+    <a href="{{ .ConfirmationURL }}" style="color: #0a6b4c; font-weight: 500;">tap here to sign in</a>
+    on this device.
+  </p>
+
+  <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #8a968f;">
+    The code can only be used once. If you didn't ask to sign in to Passdown,
+    you can ignore this email.
+  </p>
+</div>

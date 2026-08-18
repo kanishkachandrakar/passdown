@@ -10,13 +10,23 @@ import { createClient } from "@/lib/supabase/client";
 
 type Step = "email" | "code";
 
-export function VerifyForm({ next }: { next: string }) {
+export function VerifyForm({
+  next,
+  linkFailed = false,
+}: {
+  next: string;
+  linkFailed?: boolean;
+}) {
   const router = useRouter();
 
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    linkFailed
+      ? "That sign-in link didn't work — links only open in the browser that asked for them, and only once. Enter your email and use the six-digit code instead."
+      : null
+  );
   const [busy, setBusy] = useState(false);
 
   async function sendCode(event: FormEvent) {
@@ -33,7 +43,15 @@ export function VerifyForm({ next }: { next: string }) {
     const supabase = createClient();
     const { error: sendError } = await supabase.auth.signInWithOtp({
       email: check.email,
-      options: { shouldCreateUser: true },
+      options: {
+        shouldCreateUser: true,
+        /*
+          Built from the origin actually being served, not from Supabase's
+          configured site_url — otherwise the link in the email points at
+          whatever port was configured months ago and 404s.
+        */
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
     });
     setBusy(false);
 

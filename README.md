@@ -51,14 +51,22 @@ npm run db:start        # starts Postgres, auth, storage; applies supabase/schem
 npm run dev
 ```
 
-`db:start` prints an API URL, anon key and service role key. Put them in `.env.local` (see `.env.example`). Sign-in codes arrive in Mailpit at http://127.0.0.1:54324 — no real email needed.
+`db:start` prints an API URL, anon key and service role key. Put them in `.env.local` (see `.env.example`). Sign-in emails arrive in Mailpit at http://127.0.0.1:54324 — no real inbox needed. Each one carries a six-digit code *and* a one-tap link; either works.
+
+If Next starts on 3001 because something already holds 3000, nothing needs changing — the link in the email is built from the origin the app is actually being served on.
 
 ### Against a hosted Supabase project
 
 1. Create a project
 2. Run `supabase/schema.sql` in the SQL editor, top to bottom
 3. Copy `.env.example` to `.env.local` and fill in the URL and keys
-4. `npm run dev`
+4. Under **Authentication → URL Configuration**, add your deployed origin to the
+   redirect allow-list as `https://your-app.vercel.app/**`, or the link in the
+   sign-in email will be refused
+5. Under **Authentication → Email Templates → Magic Link**, paste
+   `supabase/templates/magic-link.html`. The stock template sends a link and no
+   code, which leaves the verify screen asking for six digits nobody was sent
+6. `npm run dev`
 
 Optionally run `supabase/seed.sql` for the demand list on the home screen. Anything it feeds is labelled **Demo Campus Preview** in the UI.
 
