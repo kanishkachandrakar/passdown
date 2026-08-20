@@ -36,7 +36,7 @@ export default async function ReleaseDonePage({
   const waiting = count ?? 0;
 
   return (
-    <div className="space-y-6 pd-in">
+    <div className="mx-auto max-w-lg space-y-6 pd-in">
       <div className="text-center">
         <p className="text-[13px] font-semibold uppercase tracking-[0.18em] text-accent">
           Released

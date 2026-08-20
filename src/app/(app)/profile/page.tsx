@@ -48,7 +48,7 @@ export default async function ProfilePage() {
   const pastItems = items.filter((i) => !liveItems.includes(i));
 
   return (
-    <div className="space-y-8 pd-in">
+    <div className="mx-auto max-w-2xl space-y-8 pd-in">
       <section>
         <h1 className="break-words text-2xl font-semibold tracking-tight text-ink">
           {profile.name}

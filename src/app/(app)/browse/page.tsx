@@ -4,6 +4,7 @@ import { EmptyState, LinkButton, SectionHeading } from "@/components/ui";
 import { areaOfPickup, proximityRank } from "@/lib/campus";
 import { requireProfile } from "@/lib/session";
 import { CATEGORIES } from "@/lib/types";
+import { getViewMode } from "@/lib/view-mode";
 import { CategoryFilter } from "./category-filter";
 
 export const metadata = { title: "Browse — Passdown" };
@@ -19,6 +20,7 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
   const { profile, supabase } = await requireProfile();
   const params = await searchParams;
   const category = typeof params.category === "string" ? params.category : null;
+  const viewMode = await getViewMode();
 
   let query = supabase
     .from("items")
@@ -28,6 +30,10 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
     .neq("owner_id", profile.id)
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE);
+
+  // Real view means real listings only. Sample stock is removed outright, not
+  // greyed out — see the Demo/Real switch in the header.
+  if (viewMode === "user") query = query.eq("is_demo", false);
 
   if (category && CATEGORIES.includes(category as (typeof CATEGORIES)[number])) {
     query = query.eq("category", category);
@@ -73,7 +79,11 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
             title={`${items.length} available`}
             hint="Sorted by how far you have to walk."
           />
-          <ul className="space-y-2">
+          {/*
+            A single column is right on a phone and wasteful on a laptop. The
+            proximity sort still reads left-to-right, top-to-bottom.
+          */}
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item) => (
               <li key={item.id}>
                 <ItemCard

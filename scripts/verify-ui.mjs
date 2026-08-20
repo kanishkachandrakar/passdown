@@ -272,6 +272,57 @@ async function main() {
     (await get(`/release/${fridge.id}/done`, ana)).status === 404
   );
 
+  step("The releaser's own listings");
+  const boHome = await get("/home", bo);
+  check(
+    "your own items are reachable from home, not just Profile",
+    visible(boHome.body).includes("Your items") &&
+      visible(boHome.body).includes("Mini fridge")
+  );
+
+  step("Sample listings are labelled, and removable");
+  const { data: sample } = await admin
+    .from("items")
+    .insert({
+      owner_id: bo.id,
+      name: "Sample kettle",
+      category: "Kitchen",
+      condition: "good",
+      is_free: true,
+      price: 0,
+      pickup_location: "block-b-lobby",
+      available_until: dayOffset(20),
+      is_demo: true,
+    })
+    .select()
+    .single();
+
+  const browseDemo = await get("/browse", ana);
+  check(
+    "a sample listing shows in Demo view, marked Sample",
+    visible(browseDemo.body).includes("Sample kettle") &&
+      visible(browseDemo.body).includes("Sample")
+  );
+
+  const browseReal = visible(
+    await (
+      await fetch(`${BASE}/browse`, {
+        headers: { cookie: `${ana.cookie}; passdown_view=user` },
+        redirect: "manual",
+      })
+    ).text()
+  );
+  check(
+    "and is gone entirely in Real view",
+    !browseReal.includes("Sample kettle")
+  );
+  check(
+    "while genuine listings survive the switch",
+    browseReal.includes("On campus right now")
+  );
+
+  await admin.from("items").delete().eq("id", sample.id);
+
   step("What Ana sees");
   const homeMatched = await get("/home", ana);
   check(

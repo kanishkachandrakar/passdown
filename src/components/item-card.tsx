@@ -45,6 +45,7 @@ export function ItemCard({
         </p>
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {item.is_demo ? <Chip tone="warn">Sample</Chip> : null}
           {unavailable ? (
             <Chip tone={STATUS_TONE[item.status]}>{ITEM_STATUS_LABEL[item.status]}</Chip>
           ) : (

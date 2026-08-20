@@ -11,7 +11,7 @@ export default async function ReleasePage() {
   const { profile } = await requireProfile();
 
   return (
-    <div className="pd-in">
+    <div className="mx-auto max-w-lg pd-in">
       <Link href="/home" className="text-sm text-muted hover:text-ink">
         ← Home
       </Link>

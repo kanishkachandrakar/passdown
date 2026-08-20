@@ -31,7 +31,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         viewMode={viewMode}
         showViewSwitch={(count ?? 0) > 0}
       />
-      <main className="mx-auto w-full max-w-md flex-1 px-4 pb-28 pt-4 sm:max-w-lg">
+      {/*
+        Mobile-first, then given room. The bottom nav only exists on phones, so
+        the tall pb- reserve goes with it.
+      */}
+      <main className="mx-auto w-full max-w-md flex-1 px-4 pb-28 pt-4 sm:max-w-lg md:pb-12 lg:max-w-5xl lg:pt-8">
         {children}
       </main>
       <AppNav />

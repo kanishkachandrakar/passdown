@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ItemCard } from "@/components/item-card";
 import { LiveRefresh } from "@/components/live-refresh";
 import { NeedRow } from "@/components/need-row";
 import { Remaining } from "@/components/remaining";
@@ -58,6 +59,16 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
         .limit(3),
     ]);
 
+  // Your own listings, so getting back to something you released doesn't mean
+  // a trip through Profile.
+  const { data: myItems } = await supabase
+    .from("items")
+    .select("*")
+    .eq("owner_id", profile.id)
+    .in("status", ["available", "reserved", "claimed"])
+    .order("created_at", { ascending: false })
+    .limit(6);
+
   const needs: Need[] = needsResult.data ?? [];
 
   // Match counts per need, live items only — a match against something that
@@ -69,7 +80,7 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
       .select("*, items(*)")
       .in(
         "need_id",
-        needs.map((n) => n.id)
+        needs.map((n) => n.id),
       )
       .order("match_score", { ascending: false });
     matches = (data as MatchWithItem[] | null) ?? [];
@@ -85,8 +96,14 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
   const recentMatches = [...liveMatches]
     .sort(
       (a, b) =>
-        proximityRank(profile.campus_area, areaOfPickup(a.items?.pickup_location)) -
-        proximityRank(profile.campus_area, areaOfPickup(b.items?.pickup_location))
+        proximityRank(
+          profile.campus_area,
+          areaOfPickup(a.items?.pickup_location),
+        ) -
+        proximityRank(
+          profile.campus_area,
+          areaOfPickup(b.items?.pickup_location),
+        ),
     )
     .slice(0, 3);
 
@@ -95,7 +112,7 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
   const posted = params.posted;
 
   return (
-    <div className="space-y-8 pd-in">
+    <div className="mx-auto max-w-lg space-y-8 pd-in lg:max-w-none">
       <LiveRefresh intervalMs={5000} />
 
       {posted === "need" ? (
@@ -152,7 +169,7 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
           Hi {firstName(profile.name)} — what are you doing?
         </h1>
 
-        <div className="mt-4 grid gap-3">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <BigAction
             href="/need/new"
             title="I need something"
@@ -166,93 +183,134 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
         </div>
       </section>
 
-      <section>
-        <SectionHeading
-          title="Your needs"
-          action={
-            needs.length ? (
-              <Link href="/need/new" className="text-sm font-medium text-accent">
-                Add
-              </Link>
-            ) : null
-          }
-        />
-
-        {needs.length === 0 ? (
-          <EmptyState
-            title="Nothing on your list yet"
-            body="Post what you're looking for. It sits quietly until someone on campus releases a match."
-            action={
-              <LinkButton href="/need/new" variant="soft" size="sm">
-                Post a need
-              </LinkButton>
-            }
-          />
-        ) : (
-          <ul className="space-y-2">
-            {needs.map((need) => (
-              <li key={need.id}>
-                <NeedRow need={need} matchCount={countsByNeed.get(need.id) ?? 0} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {recentMatches.length > 0 ? (
-        <section>
-          <SectionHeading title="Closest matches" hint="Nearest first." />
-          <ul className="space-y-2">
-            {recentMatches.map((match) => (
-              <li key={match.id}>
-                <Link
-                  href={`/items/${match.item_id}`}
-                  className="block rounded-2xl border border-accent-line bg-surface p-3.5 transition hover:border-accent"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate font-medium text-ink">
-                      {match.items?.name}
-                    </p>
-                    <Chip tone="accent">Match</Chip>
-                  </div>
-                  <p className="mt-1 text-[13px] text-muted">
-                    {proximityLabel(
-                      profile.campus_area,
-                      areaOfPickup(match.items?.pickup_location)
-                    )}
-                  </p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {viewMode === "demo" && demandResult.data && demandResult.data.length > 0 ? (
+      {/* Two columns once there is room for them: your own stuff on the
+          left, what campus is offering on the right. */}
+      <div className="grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-x-6">
         <section>
           <SectionHeading
-            title="Students near you need"
-            action={<DemoBadge />}
-            hint="Sample demand for the demo campus, not live usage."
+            title="Your needs"
+            action={
+              needs.length ? (
+                <Link
+                  href="/need/new"
+                  className="text-sm font-medium text-accent"
+                >
+                  Add
+                </Link>
+              ) : null
+            }
           />
-          <Card className="divide-y divide-line py-0">
-            {demandResult.data.map((row) => (
-              <div
-                key={row.item_name}
-                className="flex items-center justify-between gap-3 py-2.5"
-              >
-                <span className="truncate text-[15px] text-ink">{row.item_name}</span>
-                <span className="shrink-0 text-[13px] text-muted">
-                  {row.waiting} {plural(row.waiting, "student")} waiting
-                </span>
-              </div>
-            ))}
-          </Card>
-          <p className="mt-2 px-1 text-[12px] leading-relaxed text-faint">
-            Sitting on any of these? Releasing one takes about a minute.
-          </p>
+
+          {needs.length === 0 ? (
+            <EmptyState
+              title="Nothing on your list yet"
+              body="Post what you're looking for. It sits quietly until someone on campus releases a match."
+              action={
+                <LinkButton href="/need/new" variant="soft" size="sm">
+                  Post a need
+                </LinkButton>
+              }
+            />
+          ) : (
+            <ul className="space-y-2">
+              {needs.map((need) => (
+                <li key={need.id}>
+                  <NeedRow
+                    need={need}
+                    matchCount={countsByNeed.get(need.id) ?? 0}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
-      ) : null}
+
+        {myItems && myItems.length > 0 ? (
+          <section>
+            <SectionHeading
+              title="Your items"
+              action={
+                <Link
+                  href="/release"
+                  className="text-sm font-medium text-accent"
+                >
+                  Release
+                </Link>
+              }
+            />
+            <ul className="space-y-2">
+              {myItems.map((item) => (
+                <li key={item.id}>
+                  <ItemCard
+                    item={item}
+                    viewerArea={profile.campus_area}
+                    href={`/items/${item.id}`}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {recentMatches.length > 0 ? (
+          <section>
+            <SectionHeading title="Closest matches" hint="Nearest first." />
+            <ul className="space-y-2">
+              {recentMatches.map((match) => (
+                <li key={match.id}>
+                  <Link
+                    href={`/items/${match.item_id}`}
+                    className="block rounded-2xl border border-accent-line bg-surface p-3.5 transition hover:border-accent"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate font-medium text-ink">
+                        {match.items?.name}
+                      </p>
+                      <Chip tone="accent">Match</Chip>
+                    </div>
+                    <p className="mt-1 text-[13px] text-muted">
+                      {proximityLabel(
+                        profile.campus_area,
+                        areaOfPickup(match.items?.pickup_location),
+                      )}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {viewMode === "demo" &&
+        demandResult.data &&
+        demandResult.data.length > 0 ? (
+          <section>
+            <SectionHeading
+              title="Students near you need"
+              action={<DemoBadge />}
+              hint="Sample demand for the demo campus, not live usage."
+            />
+            <Card className="divide-y divide-line py-0">
+              {demandResult.data.map((row) => (
+                <div
+                  key={row.item_name}
+                  className="flex items-center justify-between gap-3 py-2.5"
+                >
+                  <span className="truncate text-[15px] text-ink">
+                    {row.item_name}
+                  </span>
+                  <span className="shrink-0 text-[13px] text-muted">
+                    {row.waiting} {plural(row.waiting, "student")} waiting
+                  </span>
+                </div>
+              ))}
+            </Card>
+            <p className="mt-2 px-1 text-[12px] leading-relaxed text-faint">
+              Sitting on any of these? Releasing one takes about a minute.
+            </p>
+          </section>
+        ) : null}
+      </div>
     </div>
   );
 }

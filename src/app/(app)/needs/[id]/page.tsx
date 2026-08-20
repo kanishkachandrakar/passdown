@@ -84,7 +84,7 @@ export default async function NeedPage({ params }: PageProps<"/needs/[id]">) {
       : "Any price";
 
   return (
-    <div className="space-y-6 pd-in">
+    <div className="mx-auto max-w-lg space-y-6 pd-in">
       <LiveRefresh intervalMs={5000} />
 
       <div>

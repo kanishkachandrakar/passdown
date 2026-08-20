@@ -66,7 +66,7 @@ export default async function ReservationPage({
   }
 
   return (
-    <div className="space-y-5 pd-in">
+    <div className="mx-auto max-w-lg space-y-5 pd-in">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-ink">
           {item.name}

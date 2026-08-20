@@ -26,6 +26,8 @@ npm run dev
 
 Then http://localhost:3000 → **Enter Passdown** → any institutional email → grab the code from http://127.0.0.1:54324.
 
+Once you're in, `npm run seed:demo` fills Browse with a dozen sample listings at your own institution, so it isn't an empty grid. They're marked **Sample**, and the **Demo / Real** switch in the header removes them.
+
 To see the thing this project is actually about — an item that can be claimed exactly once — sign in as a second student in a private window, put them in a different block, and claim the same item from both. Or skip the setup:
 
 ```bash
@@ -101,7 +103,7 @@ Optionally run `supabase/seed.sql` for the demand list on the home screen. Anyth
 | Command | What it proves |
 |---|---|
 | `npm run verify` | 41 checks on the database: RLS isolation, matching, the concurrent-claim race, expiry, self-healing, handoff completion, housekeeping |
-| `npm run verify:ui` | 43 checks on the rendered screens: proximity on every card, match reasons, the Demo Campus Preview label, the item flipping to unavailable in another student's tab |
+| `npm run verify:ui` | 47 checks on the rendered screens: proximity on every card, match reasons, the Demo/Real switch actually removing sample data, the item flipping to unavailable in another student's tab |
 | `npm run build` / `npm run lint` | types and lint |
 
 `verify:ui` needs `npm run dev` running. Both scripts create and delete their own accounts, and `verify` refuses to run against anything but a local database.

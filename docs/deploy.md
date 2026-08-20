@@ -46,12 +46,23 @@ Rules that matter:
 
 `formatPrice` is hardcoded to rupees. One function, one change.
 
-### 3. Do **not** run `supabase/seed.sql`
+### 3. Do **not** seed sample data
 
-That file exists to populate "Students near you need" for the demo, and the UI
-labels it **Demo Campus Preview** precisely because it is fictional. On a real
-deployment leave `demo_demand` empty — the home screen hides the whole section
-when there are no rows, which is the honest state on day one.
+That means both `supabase/seed.sql` and `npm run seed:demo`.
+
+`seed.sql` populates "Students near you need"; `seed:demo` creates three sample
+students and twelve sample listings so Browse isn't empty. Both exist so a
+fresh install has something to look at, and both are labelled in the UI
+precisely because they are fictional.
+
+On a real deployment, seed neither. An empty Browse on day one is the honest
+state, and the home screen hides the demand section entirely when there are no
+rows. If you did seed a production database by accident, `npm run seed:demo --
+--clean --domain=your-uni.edu` removes the accounts and their listings, and
+`delete from demo_demand;` clears the rest.
+
+With nothing seeded, the **Demo / Real** switch doesn't render either — there
+is no sample data to switch between.
 
 ---
 

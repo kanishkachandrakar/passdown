@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { HeaderNav } from "@/components/app-nav";
 import { ViewModeSwitch } from "@/components/view-mode-switch";
 import { areaLabel } from "@/lib/campus";
 import type { Profile } from "@/lib/types";
@@ -17,15 +18,19 @@ export function AppHeader({
 }) {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-canvas/85 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-md items-center justify-between gap-3 px-4 py-3 sm:max-w-lg">
-        <Link href="/home" className="min-w-0">
-          <p className="text-[15px] font-semibold leading-tight tracking-tight text-ink">
-            Passdown
-          </p>
-          <p className="truncate text-[12px] leading-tight text-faint">
-            Your campus already has one.
-          </p>
-        </Link>
+      <div className="mx-auto flex w-full max-w-md items-center justify-between gap-3 px-4 py-3 sm:max-w-lg lg:max-w-5xl">
+        <div className="flex min-w-0 items-center gap-6">
+          <Link href="/home" className="min-w-0">
+            <p className="text-[15px] font-semibold leading-tight tracking-tight text-ink">
+              Passdown
+            </p>
+            <p className="truncate text-[12px] leading-tight text-faint">
+              Your campus already has one.
+            </p>
+          </Link>
+
+          <HeaderNav />
+        </div>
 
         <div className="flex shrink-0 items-center gap-2">
           {showViewSwitch ? <ViewModeSwitch mode={viewMode} /> : null}
@@ -46,8 +51,8 @@ export function AppHeader({
 
       {showViewSwitch && viewMode === "demo" ? (
         <p className="border-t border-warn/20 bg-warn-soft px-4 py-1.5 text-center text-[11px] font-medium text-warn">
-          Demo view — sample campus demand is included and labelled. Switch to
-          Real to hide it.
+          Demo view — sample listings and campus demand are included and
+          labelled. Switch to Real to hide them.
         </p>
       ) : null}
     </header>

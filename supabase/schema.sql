@@ -78,6 +78,12 @@ create table if not exists items (
   constraint price_matches_free check ((is_free and price = 0) or (not is_free and price > 0))
 );
 
+-- Sample listings seeded by scripts/seed-demo.mjs so Browse isn't empty on a
+-- fresh install. Flagged rather than hidden so the UI can label them and the
+-- Demo/Real switch can remove them — a sample item must never be mistakable
+-- for something a real student is actually offering.
+alter table items add column if not exists is_demo boolean not null default false;
+
 create index if not exists items_status_idx     on items(status);
 create index if not exists items_category_idx   on items(category);
 create index if not exists items_owner_idx      on items(owner_id);

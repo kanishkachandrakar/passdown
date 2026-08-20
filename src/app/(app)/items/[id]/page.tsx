@@ -63,7 +63,7 @@ export default async function ItemPage({ params }: PageProps<"/items/[id]">) {
   const reasons = (match?.reasons as string[] | null) ?? [];
 
   return (
-    <div className="space-y-5 pd-in">
+    <div className="mx-auto max-w-lg space-y-5 pd-in">
       {/* Keeps this page honest while another tab is claiming the same item. */}
       <LiveRefresh intervalMs={3000} />
 
@@ -98,6 +98,14 @@ export default async function ItemPage({ params }: PageProps<"/items/[id]">) {
           <Chip>{item.category}</Chip>
         </div>
       </div>
+
+      {item.is_demo ? (
+        <Notice tone="warn">
+          Sample listing, seeded so Browse isn&rsquo;t empty on a fresh install.
+          It behaves exactly like a real one — you can claim it and the lock
+          works — but nobody is actually waiting to hand it over.
+        </Notice>
+      ) : null}
 
       <Card className="space-y-2.5">
         <Row

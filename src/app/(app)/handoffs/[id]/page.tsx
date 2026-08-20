@@ -36,7 +36,7 @@ export default async function HandoffPage({ params }: PageProps<"/handoffs/[id]"
   const done = handoff.status === "completed";
 
   return (
-    <div className="space-y-5 pd-in">
+    <div className="mx-auto max-w-lg space-y-5 pd-in">
       <LiveRefresh intervalMs={4000} />
 
       <Link href="/home" className="text-sm text-muted hover:text-ink">

@@ -7,7 +7,7 @@ export const metadata = { title: "Post a need — Passdown" };
 
 export default function NewNeedPage() {
   return (
-    <div className="pd-in">
+    <div className="mx-auto max-w-lg pd-in">
       <Link href="/home" className="text-sm text-muted hover:text-ink">
         ← Home
       </Link>
