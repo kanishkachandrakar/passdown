@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ClaimForm } from "@/components/claim-form";
+import { ItemHero } from "@/components/item-thumb";
 import { LiveRefresh } from "@/components/live-refresh";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, Chip, LinkButton, Notice } from "@/components/ui";
@@ -71,14 +72,7 @@ export default async function ItemPage({ params }: PageProps<"/items/[id]">) {
         ← Home
       </Link>
 
-      {item.photo_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={item.photo_url}
-          alt={item.name}
-          className="aspect-4/3 w-full rounded-2xl border border-line object-cover"
-        />
-      ) : null}
+      <ItemHero item={item} />
 
       <div>
         <div className="flex items-start justify-between gap-3">

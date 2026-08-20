@@ -1,13 +1,17 @@
 import type { ItemStatus, NeedStatus } from "./types";
 
 /**
- * Prices are shown in rupees because the pilot campus is in India. One place
- * to change for a campus that uses something else.
+ * Currency, in one place. A campus that uses something else changes these two
+ * lines and nothing else — every price in the app runs through formatPrice.
  */
+export const CURRENCY = { symbol: "$", locale: "en-US" } as const;
+
 export function formatPrice(isFree: boolean, price: number | string): string {
   if (isFree) return "Free";
   const n = typeof price === "string" ? Number(price) : price;
-  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+  return `${CURRENCY.symbol}${n.toLocaleString(CURRENCY.locale, {
+    maximumFractionDigits: 0,
+  })}`;
 }
 
 const DATE_FMT = new Intl.DateTimeFormat("en-GB", {

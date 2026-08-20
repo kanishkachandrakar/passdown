@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ItemThumb } from "@/components/item-thumb";
 import { Chip } from "@/components/ui";
 import { pickupProximityLine } from "@/lib/campus";
 import { availabilityLabel, formatPrice, ITEM_STATUS_LABEL } from "@/lib/format";
@@ -70,23 +71,3 @@ export function ItemCard({
   );
 }
 
-function ItemThumb({ item }: { item: Item }) {
-  if (item.photo_url) {
-    return (
-      // Photos come from a Supabase storage bucket on a domain we don't know at
-      // build time, so this stays a plain <img> rather than next/image.
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={item.photo_url}
-        alt=""
-        className="h-16 w-16 shrink-0 rounded-xl border border-line object-cover"
-      />
-    );
-  }
-
-  return (
-    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-line bg-canvas text-lg font-semibold text-faint">
-      {item.name.slice(0, 1).toUpperCase()}
-    </div>
-  );
-}

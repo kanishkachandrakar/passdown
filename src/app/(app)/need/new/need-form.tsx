@@ -76,8 +76,8 @@ export function NeedForm({
                 type="number"
                 inputMode="numeric"
                 min={0}
-                step={50}
-                placeholder="2000"
+                step={1}
+                placeholder="40"
               />
             </Field>
           </div>

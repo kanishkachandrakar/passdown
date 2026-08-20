@@ -44,7 +44,9 @@ Rules that matter:
 
 ### 2. Currency — `src/lib/format.ts`
 
-`formatPrice` is hardcoded to rupees. One function, one change.
+Prices are US dollars, set by the `CURRENCY` constant in this file. Every
+price in the app runs through `formatPrice`, so a campus using something else
+changes the symbol and locale there and nowhere else.
 
 ### 3. Do **not** seed sample data
 

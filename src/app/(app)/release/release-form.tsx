@@ -140,9 +140,9 @@ export function ReleaseForm({
                 type="number"
                 inputMode="numeric"
                 min={1}
-                step={50}
+                step={1}
                 required
-                placeholder="1500"
+                placeholder="25"
               />
             </Field>
           </div>

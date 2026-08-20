@@ -23,7 +23,7 @@ Students at a single institution, verified by institutional email. No cross-camp
 
 | Step | Actor | Result |
 |------|-------|--------|
-| 1 | Student A | Creates Need: *mini fridge, by Aug 28, free or under ₹2000* |
+| 1 | Student A | Creates Need: *mini fridge, by Aug 28, free or under $40* |
 | 2 | Student B | Releases mini fridge, sets pickup + available-until |
 | 3 | System | Scores item against open Needs, creates Match rows, notifies A |
 | 4 | Student A | Taps Claim → `reservations` row, 10 min expiry, item → `reserved` |

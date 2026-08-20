@@ -106,7 +106,7 @@ await ana.client.from("needs").insert({
   item_name: "Scientific calculator",
   category: "Books & Study",
   free_only: false,
-  max_price: 800,
+  max_price: 25,
   needed_by: dayOffset(30),
 });
 
@@ -133,7 +133,7 @@ const supply = [
     category: "Electronics",
     condition: "good",
     is_free: false,
-    price: 1500,
+    price: 45,
     pickup_location: "student-center",
   },
 ];
