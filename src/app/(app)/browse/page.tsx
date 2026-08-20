@@ -5,7 +5,35 @@ import { areaOfPickup, proximityRank } from "@/lib/campus";
 import { requireProfile } from "@/lib/session";
 import { CATEGORIES } from "@/lib/types";
 import { getViewMode } from "@/lib/view-mode";
+import { localInboxUrl } from "@/lib/local-dev";
 import { CategoryFilter } from "./category-filter";
+
+/**
+ * Local development only.
+ *
+ * Passdown is campus-scoped, so listings seeded for one institution are
+ * invisible to an account at another — correct, and baffling the first time it
+ * happens to you. If Browse is empty on a local install, say why and give the
+ * exact command.
+ */
+function EmptyBrowseDevHint({ institution }: { institution: string }) {
+  if (!localInboxUrl()) return null;
+
+  return (
+    <div className="mt-3 rounded-xl border border-warn/25 bg-warn-soft px-3.5 py-3">
+      <p className="text-sm font-medium text-warn">
+        Running locally with nothing seeded for {institution}?
+      </p>
+      <p className="mt-1 text-sm leading-relaxed text-warn">
+        Sample listings are scoped to one institution, like real ones. To fill
+        this page for yours:
+      </p>
+      <code className="mt-2 block rounded-lg bg-surface/70 px-2.5 py-1.5 font-mono text-[12px] text-ink">
+        npm run seed:demo -- --domain={institution}
+      </code>
+    </div>
+  );
+}
 
 export const metadata = { title: "Browse — Passdown" };
 
@@ -64,15 +92,18 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
       <CategoryFilter categories={[...CATEGORIES]} active={category} />
 
       {items.length === 0 ? (
-        <EmptyState
-          title={category ? `Nothing in ${category} yet` : "Nothing released yet"}
-          body="Posting what you need works better than waiting here — it watches for you and tells you the moment something fits."
-          action={
-            <LinkButton href="/need/new" variant="soft" size="sm">
-              Post a need instead
-            </LinkButton>
-          }
-        />
+        <>
+          <EmptyState
+            title={category ? `Nothing in ${category} yet` : "Nothing released yet"}
+            body="Posting what you need works better than waiting here — it watches for you and tells you the moment something fits."
+            action={
+              <LinkButton href="/need/new" variant="soft" size="sm">
+                Post a need instead
+              </LinkButton>
+            }
+          />
+          <EmptyBrowseDevHint institution={profile.institution} />
+        </>
       ) : (
         <>
           <SectionHeading
