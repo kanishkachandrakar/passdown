@@ -8,6 +8,32 @@ Built for the Stellic Pathfinders Challenge 2026 · Category 02, Overcoming Obst
 
 ---
 
+## If you're evaluating this
+
+**Sign-in is by six-digit email code, and running locally the email never leaves your machine.** It's captured by Mailpit instead of being sent.
+
+> **Open http://127.0.0.1:54324 to read it.** Every sign-in code lands there.
+
+Any address works — `demo.a@vit.ac.in`, anything at an institutional domain. It doesn't have to be one you own, and nothing arrives in a real inbox. The app says so on screen too, but it's the one thing worth knowing before you start.
+
+Two minutes, start to finish:
+
+```bash
+npm install
+npm run db:start        # Docker: Postgres, auth, storage
+npm run dev
+```
+
+Then http://localhost:3000 → **Enter Passdown** → any institutional email → grab the code from http://127.0.0.1:54324.
+
+To see the thing this project is actually about — an item that can be claimed exactly once — sign in as a second student in a private window, put them in a different block, and claim the same item from both. Or skip the setup:
+
+```bash
+npm run verify          # races 12 simultaneous claims, 10 times over
+```
+
+---
+
 ## The loop
 
 1. A student posts what they **need**

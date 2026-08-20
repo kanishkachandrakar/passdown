@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 
 import { Button, Field, Input, Notice } from "@/components/ui";
 import { checkInstitutionalEmail } from "@/lib/institution";
+import { localInboxUrl } from "@/lib/local-dev";
 import { createClient } from "@/lib/supabase/client";
 
 type Step = "email" | "code";
@@ -157,6 +158,8 @@ export function VerifyForm({
         <span className="break-all text-ink">{email}</span>.
       </p>
 
+      <LocalInboxHint />
+
       <form onSubmit={verifyCode} className="mt-7 space-y-4">
         <Field label="Six-digit code" htmlFor="code">
           <Input
@@ -180,6 +183,39 @@ export function VerifyForm({
           {busy ? "Verifying…" : "Verify and enter"}
         </Button>
       </form>
+    </div>
+  );
+}
+
+/**
+ * Shown only when the app is talking to a local Supabase stack, where mail is
+ * captured rather than sent. Without this, the first thing anyone running the
+ * project does is wait for an email that was never going to arrive — and
+ * conclude sign-in is broken. A deployed build pointed at a hosted project
+ * renders nothing here.
+ */
+function LocalInboxHint() {
+  const inbox = localInboxUrl();
+  if (!inbox) return null;
+
+  return (
+    <div className="mt-4 rounded-xl border border-warn/25 bg-warn-soft px-3.5 py-3">
+      <p className="text-sm font-medium text-warn">
+        Running locally — that email never left this machine.
+      </p>
+      <p className="mt-1 text-sm leading-relaxed text-warn">
+        The local Supabase stack captures mail instead of sending it. Your code
+        is waiting at{" "}
+        <a
+          href={inbox}
+          target="_blank"
+          rel="noreferrer"
+          className="font-medium underline underline-offset-2"
+        >
+          {inbox.replace(/^https?:\/\//, "")}
+        </a>
+        . Any address works here — it doesn&rsquo;t have to be one you own.
+      </p>
     </div>
   );
 }
