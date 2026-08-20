@@ -188,6 +188,23 @@ async function main() {
     !/\b\d{3,}\s*(items|students|handoffs)\b/i.test(visible(home.body))
   );
 
+  // Demo view vs real view — the switch has to actually remove the sample data,
+  // not just relabel it.
+  const realView = await fetch(`${BASE}/home`, {
+    headers: { cookie: `${ana.cookie}; passdown_view=user` },
+    redirect: "manual",
+  });
+  const realBody = visible(await realView.text());
+  check(
+    "switching to Real removes the sample demand entirely",
+    !realBody.includes("Demo Campus Preview") &&
+      !realBody.includes("Students near you need")
+  );
+  check(
+    "switching to Real keeps the student's own screen intact",
+    realBody.includes("what are you doing")
+  );
+
   check("the release form renders", (await get("/release", ana)).status === 200);
   check("the need form renders", (await get("/need/new", ana)).status === 200);
 

@@ -1,9 +1,20 @@
 import Link from "next/link";
 
+import { ViewModeSwitch } from "@/components/view-mode-switch";
 import { areaLabel } from "@/lib/campus";
 import type { Profile } from "@/lib/types";
+import type { ViewMode } from "@/lib/view-mode";
 
-export function AppHeader({ profile }: { profile: Profile }) {
+export function AppHeader({
+  profile,
+  viewMode,
+  showViewSwitch,
+}: {
+  profile: Profile;
+  viewMode: ViewMode;
+  /** Hidden when there is no sample data at all — nothing to switch between. */
+  showViewSwitch: boolean;
+}) {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-canvas/85 backdrop-blur">
       <div className="mx-auto flex w-full max-w-md items-center justify-between gap-3 px-4 py-3 sm:max-w-lg">
@@ -16,18 +27,29 @@ export function AppHeader({ profile }: { profile: Profile }) {
           </p>
         </Link>
 
-        <Link
-          href="/profile"
-          className="shrink-0 rounded-full border border-line bg-surface px-2.5 py-1.5 text-right"
-        >
-          <span className="block text-[11px] leading-tight text-faint">
-            {profile.institution}
-          </span>
-          <span className="block text-[12px] font-medium leading-tight text-ink">
-            {areaLabel(profile.campus_area) ?? "Set your block"}
-          </span>
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          {showViewSwitch ? <ViewModeSwitch mode={viewMode} /> : null}
+
+          <Link
+            href="/profile"
+            className="rounded-full border border-line bg-surface px-2.5 py-1.5 text-right"
+          >
+            <span className="block text-[11px] leading-tight text-faint">
+              {profile.institution}
+            </span>
+            <span className="block text-[12px] font-medium leading-tight text-ink">
+              {areaLabel(profile.campus_area) ?? "Set your block"}
+            </span>
+          </Link>
+        </div>
       </div>
+
+      {showViewSwitch && viewMode === "demo" ? (
+        <p className="border-t border-warn/20 bg-warn-soft px-4 py-1.5 text-center text-[11px] font-medium text-warn">
+          Demo view — sample campus demand is included and labelled. Switch to
+          Real to hide it.
+        </p>
+      ) : null}
     </header>
   );
 }

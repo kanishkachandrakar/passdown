@@ -75,7 +75,7 @@ Optionally run `supabase/seed.sql` for the demand list on the home screen. Anyth
 | Command | What it proves |
 |---|---|
 | `npm run verify` | 41 checks on the database: RLS isolation, matching, the concurrent-claim race, expiry, self-healing, handoff completion, housekeeping |
-| `npm run verify:ui` | 41 checks on the rendered screens: proximity on every card, match reasons, the Demo Campus Preview label, the item flipping to unavailable in another student's tab |
+| `npm run verify:ui` | 43 checks on the rendered screens: proximity on every card, match reasons, the Demo Campus Preview label, the item flipping to unavailable in another student's tab |
 | `npm run build` / `npm run lint` | types and lint |
 
 `verify:ui` needs `npm run dev` running. Both scripts create and delete their own accounts, and `verify` refuses to run against anything but a local database.
@@ -116,6 +116,7 @@ Note for a real pilot: Supabase pauses free-tier projects after a week of inacti
 CLAUDE.md                instructions for Claude Code
 docs/spec.md             full product spec
 docs/tasks.md            day-by-day build plan
+docs/deploy.md           running it for real, not for a demo
 supabase/schema.sql      tables, RLS, grants, claim/handoff/maintenance functions
 supabase/seed.sql        demo demand list (clearly labelled)
 src/lib/matching.ts      the scoring function
@@ -140,3 +141,9 @@ No runtime dependencies beyond `next`, `react` and the two Supabase packages. Th
 ## A note on the numbers
 
 Any figure that comes from seeded data is labelled **Demo Campus Preview**. Personal counts ("2 completed handoffs") are real and are the only counts shown. No invented traction appears anywhere in this project.
+
+There's a **Demo / Real** switch in the header to prove it. Flip to Real and every seeded figure disappears — what's left is only rows created by actual accounts. On a deployment that never ran `seed.sql` there's no sample data at all, so the switch doesn't appear.
+
+## Deploying it for real
+
+`docs/deploy.md` is the runbook: hosted Supabase, custom SMTP, the two auth settings that break sign-in if you skip them, and the three pieces of demo data — the campus map most of all — that must be replaced before real students see it.

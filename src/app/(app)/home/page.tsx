@@ -16,6 +16,7 @@ import { areaOfPickup, proximityLabel, proximityRank } from "@/lib/campus";
 import { firstName, plural } from "@/lib/format";
 import { requireProfile } from "@/lib/session";
 import type { Item, Match, Need } from "@/lib/types";
+import { getViewMode } from "@/lib/view-mode";
 
 export const metadata = { title: "Home — Passdown" };
 
@@ -24,6 +25,7 @@ type MatchWithItem = Match & { items: Item | null };
 export default async function HomePage({ searchParams }: PageProps<"/home">) {
   const { profile, supabase } = await requireProfile();
   const params = await searchParams;
+  const viewMode = await getViewMode();
 
   const [needsResult, demandResult, reservationResult, handoffResult] =
     await Promise.all([
@@ -226,7 +228,7 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
         </section>
       ) : null}
 
-      {demandResult.data && demandResult.data.length > 0 ? (
+      {viewMode === "demo" && demandResult.data && demandResult.data.length > 0 ? (
         <section>
           <SectionHeading
             title="Students near you need"

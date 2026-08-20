@@ -69,7 +69,7 @@ Update this line as you go so future sessions know where things stand.
 > **Status:** the full loop is built and verified end to end. Every screen in
 > the spec exists; matching, the 10-minute lock, handoff codes and both-sides
 > confirm all work against real Postgres. `npm run verify` (41 database checks,
-> including 10 rounds of 12 simultaneous claims) and `npm run verify:ui` (41
+> including 10 rounds of 12 simultaneous claims) and `npm run verify:ui` (43
 > screen checks) both pass, as do `npm run build` and `npm run lint`.
 >
 > Not done: deploy to Vercel with a hosted Supabase project, and the Aug 18–19
