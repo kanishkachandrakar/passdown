@@ -18,16 +18,33 @@ export const dynamic = "force-dynamic";
  *  holding nothing but sample data, and unacceptable the moment a real
  *  student's account exists.
  *
- *  Turn it off by removing DEMO_OPEN_SIGNIN (and NEXT_PUBLIC_DEMO_OPEN_SIGNIN)
- *  from the environment. Sign-in reverts to emailed codes with no code change.
+ *  Turn it off by removing BOTH DEMO_OPEN_SIGNIN and
+ *  NEXT_PUBLIC_DEMO_OPEN_SIGNIN from the environment — either one on its own
+ *  is enough to keep this open. Sign-in then reverts to emailed codes with no
+ *  code change.
  * ────────────────────────────────────────────────────────────────────────
  *
  * DEMO_ACCOUNT_EMAIL still works on its own, and is the narrower option:
  * one designated address rather than all of them.
  */
 export async function GET(request: NextRequest) {
-  const openSignin = envFlag(process.env.DEMO_OPEN_SIGNIN);
-  const demoEmail = process.env.DEMO_ACCOUNT_EMAIL?.trim().toLowerCase();
+  /*
+    Either spelling turns this on. The NEXT_PUBLIC_ one is what the verify
+    screen reads, and setting only that is the easy mistake to make in a
+    dashboard: the banner then promises a code on screen while this route
+    refuses to mint one, which is a worse state than either flag alone. There
+    is no reading of NEXT_PUBLIC_DEMO_OPEN_SIGNIN=true that means "and don't
+    actually hand out codes" — it is already public, and already announces the
+    deployment as a demo. Locking down means removing both.
+  */
+  const openSignin =
+    envFlag(process.env.DEMO_OPEN_SIGNIN) ||
+    envFlag(process.env.NEXT_PUBLIC_DEMO_OPEN_SIGNIN);
+  const demoEmail = (
+    process.env.DEMO_ACCOUNT_EMAIL ?? process.env.NEXT_PUBLIC_DEMO_ACCOUNT_EMAIL
+  )
+    ?.trim()
+    .toLowerCase();
 
   if (!openSignin && !demoEmail) {
     // Config state, not a credential — and without it a misconfigured
