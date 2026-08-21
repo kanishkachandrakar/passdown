@@ -26,7 +26,7 @@ npm run dev
 
 Then http://localhost:3000 → **Enter Passdown** → any institutional email → grab the code from http://127.0.0.1:54324.
 
-Once you're in, `npm run seed:demo` fills Browse with a dozen sample listings at your own institution, so it isn't an empty grid. They're marked **Sample**, and the **Demo / Real** switch in the header removes them.
+Once you're in, `npm run seed:demo` fills Browse with a dozen sample listings at your own institution, so it isn't an empty grid. They're marked **Sample**, and the **Demo / Real** switch in the header removes them. Their photos are freely-licensed images from Wikimedia Commons — credited in `docs/photo-credits.md`.
 
 To see the thing this project is actually about — an item that can be claimed exactly once — sign in as a second student in a private window, put them in a different block, and claim the same item from both. Or skip the setup:
 
@@ -145,6 +145,7 @@ CLAUDE.md                instructions for Claude Code
 docs/spec.md             full product spec
 docs/tasks.md            day-by-day build plan
 docs/deploy.md           running it for real, not for a demo
+docs/photo-credits.md    licences for the sample listing photos
 supabase/schema.sql      tables, RLS, grants, claim/handoff/maintenance functions
 supabase/seed.sql        demo demand list (clearly labelled)
 src/lib/matching.ts      the scoring function

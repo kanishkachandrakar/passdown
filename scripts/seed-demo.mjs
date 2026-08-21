@@ -48,18 +48,18 @@ const STUDENTS = [
 
 /** Twelve things students actually leave behind at the end of a year. */
 const CATALOGUE = [
-  { owner: 0, name: "Mini fridge",            category: "Dorm",            condition: "good",     price: 0,    pickup: "block-a-lobby",    days: 18, description: "Works fine, door seal is a bit loose. Defrosted and cleaned." },
-  { owner: 0, name: "Desk lamp",              category: "Dorm",            condition: "like_new", price: 0,    pickup: "block-a-lobby",    days: 25 },
-  { owner: 0, name: "Laundry hamper",         category: "Dorm",            condition: "fair",     price: 0,    pickup: "block-a-lobby",    days: 12 },
-  { owner: 0, name: "Storage bins",           category: "Dorm",            condition: "like_new", price: 0,    pickup: "block-a-lobby",    days: 20, description: "Three of them, stack inside each other." },
-  { owner: 1, name: "Scientific calculator",  category: "Books & Study",   condition: "good",     price: 12,  pickup: "block-c-lobby",    days: 30, description: "Casio fx-991. Batteries new." },
-  { owner: 1, name: "Monitor",                category: "Electronics",     condition: "good",     price: 45, pickup: "block-c-lobby",    days: 14, description: "24 inch, HDMI. Cable included." },
-  { owner: 1, name: "Desk chair",             category: "Furniture",       condition: "fair",     price: 15,    pickup: "block-c-lobby",    days: 9,  description: "One armrest is loose but it sits fine." },
-  { owner: 1, name: "Kettle",                 category: "Kitchen",         condition: "good",     price: 6,    pickup: "block-c-lobby",    days: 16 },
-  { owner: 2, name: "Lab goggles",            category: "Lab & Course Kit",condition: "like_new", price: 0,    pickup: "library-entrance", days: 40, description: "Barely used — bought them for one module." },
-  { owner: 2, name: "Organic chemistry textbook", category: "Books & Study", condition: "fair",  price: 18,  pickup: "library-entrance", days: 35, description: "Clarke, 8th edition. Some highlighting." },
-  { owner: 2, name: "Yoga mat",               category: "Sports",          condition: "good",     price: 0,    pickup: "library-entrance", days: 22 },
-  { owner: 2, name: "Winter coat",            category: "Clothing",        condition: "good",     price: 0,    pickup: "library-entrance", days: 28, description: "Size M. Warm, slightly worn at the cuffs." },
+  { owner: 0, name: "Mini fridge", photo: "mini-fridge",            category: "Dorm",            condition: "good",     price: 0,    pickup: "block-a-lobby",    days: 18, description: "Works fine, door seal is a bit loose. Defrosted and cleaned." },
+  { owner: 0, name: "Desk lamp", photo: "desk-lamp",              category: "Dorm",            condition: "like_new", price: 0,    pickup: "block-a-lobby",    days: 25 },
+  { owner: 0, name: "Laundry hamper", photo: "laundry-hamper",         category: "Dorm",            condition: "fair",     price: 0,    pickup: "block-a-lobby",    days: 12 },
+  { owner: 0, name: "Storage bins", photo: "storage-bins",           category: "Dorm",            condition: "like_new", price: 0,    pickup: "block-a-lobby",    days: 20, description: "Three of them, stack inside each other." },
+  { owner: 1, name: "Scientific calculator", photo: "scientific-calculator",  category: "Books & Study",   condition: "good",     price: 12,  pickup: "block-c-lobby",    days: 30, description: "Casio fx-991. Batteries new." },
+  { owner: 1, name: "Monitor", photo: "monitor",                category: "Electronics",     condition: "good",     price: 45, pickup: "block-c-lobby",    days: 14, description: "24 inch, HDMI. Cable included." },
+  { owner: 1, name: "Desk chair", photo: "desk-chair",             category: "Furniture",       condition: "fair",     price: 15,    pickup: "block-c-lobby",    days: 9,  description: "One armrest is loose but it sits fine." },
+  { owner: 1, name: "Kettle", photo: "kettle",                 category: "Kitchen",         condition: "good",     price: 6,    pickup: "block-c-lobby",    days: 16 },
+  { owner: 2, name: "Lab goggles", photo: "lab-goggles",            category: "Lab & Course Kit",condition: "like_new", price: 0,    pickup: "library-entrance", days: 40, description: "Barely used — bought them for one module." },
+  { owner: 2, name: "Organic chemistry textbook", photo: "chemistry-textbook", category: "Books & Study", condition: "fair",  price: 18,  pickup: "library-entrance", days: 35, description: "Clarke, 8th edition. Some highlighting." },
+  { owner: 2, name: "Yoga mat", photo: "yoga-mat",               category: "Sports",          condition: "good",     price: 0,    pickup: "library-entrance", days: 22 },
+  { owner: 2, name: "Winter coat", photo: "winter-coat",            category: "Clothing",        condition: "good",     price: 0,    pickup: "library-entrance", days: 28, description: "Size M. Warm, slightly worn at the cuffs." },
 ];
 
 const dayOffset = (n) => {
@@ -130,6 +130,9 @@ async function seedFor(domain) {
     description: item.description ?? null,
     pickup_location: item.pickup,
     available_until: dayOffset(item.days),
+    // Served straight out of public/, so seeding needs no network and no
+    // storage bucket. Credits and licences: docs/photo-credits.md
+    photo_url: item.photo ? `/demo-photos/${item.photo}.jpg` : null,
     is_demo: true,
   }));
 

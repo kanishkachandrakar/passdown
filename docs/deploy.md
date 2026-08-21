@@ -66,6 +66,11 @@ rows. If you did seed a production database by accident, `npm run seed:demo --
 With nothing seeded, the **Demo / Real** switch doesn't render either — there
 is no sample data to switch between.
 
+The sample photos in `public/demo-photos/` are freely-licensed Wikimedia
+Commons images, credited in `docs/photo-credits.md`. Most are CC BY-SA, so if
+you keep them anywhere public, keep that file too. Real listings use photos the
+student uploads, which never touches any of this.
+
 ---
 
 ## Step 1 — Create the Supabase project
