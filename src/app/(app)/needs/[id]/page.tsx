@@ -7,6 +7,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { Card, Chip, EmptyState, LinkButton, Notice } from "@/components/ui";
 import { cancelNeed } from "@/lib/actions/needs";
 import { areaOfPickup, proximityRank } from "@/lib/campus";
+import { matchNeedToItems } from "@/lib/matching";
 import {
   formatDate,
   formatPrice,
@@ -95,6 +96,44 @@ export default async function NeedPage({
           ) || b.match_score - a.match_score,
     );
 
+  /*
+    A need that filters on price can end up with nothing while the thing it
+    asked for sits on the board at a price. Silently showing "no matches" is
+    the worst version of that, so work out what the price filter is hiding and
+    say so.
+  */
+  let hiddenByPrice = 0;
+  if (need.free_only || need.max_price !== null) {
+    const { data: onBoard } = await supabase
+      .from("items")
+      .select("*")
+      .eq("status", "available")
+      .gte("available_until", new Date().toISOString().slice(0, 10))
+      .neq("owner_id", profile.id)
+      .limit(100);
+
+    const asNeed = {
+      id: need.id,
+      user_id: need.user_id,
+      item_name: need.item_name,
+      category: need.category,
+      needed_by: need.needed_by,
+      preferred_condition: need.preferred_condition,
+      campus_area: profile.campus_area,
+    };
+
+    const withoutPriceFilter = matchNeedToItems(
+      { ...asNeed, free_only: false, max_price: null },
+      (onBoard ?? []).map((i) => ({ ...i, price: Number(i.price) })),
+      (item) => areaOfPickup(item.pickup_location),
+    );
+
+    const alreadyShown = new Set(matches.map((m) => m.item_id));
+    hiddenByPrice = withoutPriceFilter.filter(
+      (m) => !alreadyShown.has(m.item_id),
+    ).length;
+  }
+
   const limit = need.free_only
     ? "Free only"
     : need.max_price !== null
@@ -175,6 +214,23 @@ export default async function NeedPage({
           </Link>
         );
       })}
+
+      {hiddenByPrice > 0 ? (
+        <Notice tone="warn">
+          {hiddenByPrice}{" "}
+          {hiddenByPrice === 1 ? "listing matches" : "listings match"} what you
+          asked for but {hiddenByPrice === 1 ? "costs" : "cost"} money, and you
+          said{" "}
+          {need.free_only
+            ? "free only"
+            : `up to ${formatPrice(false, need.max_price!)}`}
+          .{" "}
+          <Link href={`/needs/${need.id}/edit`} className="underline">
+            Change that
+          </Link>{" "}
+          to see {hiddenByPrice === 1 ? "it" : "them"}.
+        </Notice>
+      ) : null}
 
       {matches.length === 0 && yours.length === 0 ? (
         <EmptyState

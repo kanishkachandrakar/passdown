@@ -48,7 +48,7 @@ export function NeedForm({
   pendingLabel?: string;
 }) {
   const [state, action] = useActionState(serverAction, NO_ERROR);
-  const [freeOnly, setFreeOnly] = useState(defaults?.free_only ?? true);
+  const [freeOnly, setFreeOnly] = useState(defaults?.free_only ?? false);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -90,7 +90,7 @@ export function NeedForm({
           <span>
             <span className="block text-sm font-medium text-ink">Free only</span>
             <span className="block text-xs text-faint">
-              Off if you&rsquo;re willing to pay something.
+              On means free items only — anything with a price is hidden.
             </span>
           </span>
           <input
