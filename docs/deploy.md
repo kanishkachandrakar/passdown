@@ -223,6 +223,94 @@ time is a real number.
 Then deliberately break it once: claim something and let the ten minutes lapse.
 The item must return to available and your profile must show 1 missed pickup.
 
+## Step 9 — Keeping it alive for two months
+
+The app already looks after its own data: `pg_cron` sweeps every minute,
+`claim_item` heals a lapsed hold on the row it is locking, and stale items and
+needs expire themselves. Three things are outside the app and need setting up
+once.
+
+### 9.1 Stop Supabase pausing (the big one)
+
+A free project suspends after **7 days without API activity**, and a suspended
+project means judges hit a dead app with no warning.
+
+`vercel.json` already schedules a daily call to `/api/maintenance`, which runs a
+real query against the database. That is enough on its own — provided two
+things are true:
+
+1. `MAINTENANCE_SECRET` is set in Vercel. Without it the endpoint returns 501
+   and never touches the database, so the keepalive silently does nothing.
+2. The job actually appears under **Vercel → your project → Cron Jobs**.
+
+Prove the whole chain the day you deploy:
+
+```bash
+curl -H "Authorization: Bearer $MAINTENANCE_SECRET" \
+  https://your-app.vercel.app/api/maintenance
+# {"ok":true,"reservations_expired":0,"items_expired":0,"needs_expired":0}
+```
+
+That JSON is the proof. Anything else — 401, 501, HTML — means the keepalive is
+not running.
+
+**Belt and braces.** Vercel Hobby crons are best-effort and can be skipped. For
+a two-month window, add a second, independent pinger: cron-job.org or
+UptimeRobot, free, hitting
+
+```
+https://your-app.vercel.app/api/maintenance?secret=<MAINTENANCE_SECRET>
+```
+
+once a day. Two independent schedulers is the difference between "probably fine"
+and "fine".
+
+Opening the site by hand also works, but **not the landing page** — `/` is
+static and may be served entirely from Vercel's edge without ever reaching
+Supabase. Sign in and open Browse.
+
+Do not rely on the `pg_cron` job for this. It runs inside Postgres; Supabase
+measures inactivity on API usage, and internal jobs may not count.
+
+### 9.2 Real email
+
+Supabase's built-in sender is a handful of messages an hour. Over two months
+with a panel of judges that will drop sign-in codes, and the person affected
+sees nothing at all — no error, just an email that never arrives.
+
+**Authentication → Emails → SMTP Settings**, then either:
+
+- **Brevo** — 300/day free, and a single sender address can be verified in
+  minutes. The fast option if you are short of time.
+- **Resend** — 3,000/month free, but wants a verified domain, which waits on
+  DNS.
+
+Then raise **Authentication → Rate Limits → email sent**, which stays low even
+once your own SMTP is doing the sending.
+
+### 9.3 Back-ups
+
+Free projects get no automatic back-ups. Take one before anything you care
+about exists, and again after the pilot:
+
+```bash
+supabase db dump --db-url "$DB_URL" -f backup-$(date +%F).sql
+```
+
+### 9.4 What to check weekly
+
+- the `curl` above still returns `ok:true`
+- **Supabase → Logs → Auth** for sign-ins that failed
+- **Supabase → Reports** for the 500 MB database and 1 GB storage ceilings
+  (a two-month pilot will not come close, but look once)
+
+### 9.5 If judging is more than a week away
+
+The $25/month Supabase plan removes pausing entirely and adds daily back-ups.
+For one month, on something that decides a competition, that is cheap insurance
+against the one failure mode you cannot detect from outside: a paused project
+looks exactly like a broken app.
+
 ## Step 8 — Before you let real people in
 
 - **Back-ups.** Supabase takes daily back-ups on paid plans. On free, take your
