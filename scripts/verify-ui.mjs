@@ -352,8 +352,24 @@ async function main() {
     "no match count on home"
   );
 
+  const editPage = await get(`/needs/${need.id}/edit`, ana);
+  check("a need can be opened for editing", editPage.status === 200);
+  check(
+    "the form comes prefilled rather than blank",
+    editPage.body.includes('value="Mini fridge"') ||
+      editPage.body.includes("Mini fridge"),
+  );
+  check(
+    "somebody else's need is not editable",
+    (await get(`/needs/${need.id}/edit`, bo)).status === 404
+  );
+
   const matchPage = await get(`/needs/${need.id}`, ana);
   check("match screen renders", matchPage.status === 200);
+  check(
+    "and offers a way to edit the need",
+    visible(matchPage.body).includes("Edit")
+  );
   check(
     "the match says why it matched",
     visible(matchPage.body).includes("Exactly what you asked for")

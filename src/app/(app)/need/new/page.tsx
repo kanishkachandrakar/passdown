@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { createNeed } from "@/lib/actions/needs";
 import { CATEGORIES, CONDITIONS } from "@/lib/types";
 import { NeedForm } from "./need-form";
 
@@ -20,7 +21,11 @@ export default function NewNeedPage() {
         up — you don&rsquo;t have to keep checking.
       </p>
 
-      <NeedForm categories={[...CATEGORIES]} conditions={CONDITIONS} />
+      <NeedForm
+        categories={[...CATEGORIES]}
+        conditions={CONDITIONS}
+        action={createNeed}
+      />
     </div>
   );
 }

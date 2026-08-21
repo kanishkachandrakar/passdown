@@ -382,6 +382,53 @@ async function main() {
     `${needFirst[0]?.match_score}`
   );
 
+  // Editing a need re-scores it. This is the case that matters: a need that
+  // matched nothing while it said "free only" should find something once a
+  // price limit replaces it.
+  const pricedMonitor = {
+    id: "m1",
+    owner_id: bo.id,
+    name: "Monitor",
+    category: "Electronics",
+    condition: "good",
+    is_free: false,
+    price: 45,
+    pickup_location: "block-b-lobby",
+    available_until: dayOffset(21),
+  };
+  const strictNeed = {
+    id: "n-strict",
+    user_id: ana.id,
+    item_name: "Monitor",
+    category: "Electronics",
+    free_only: true,
+    max_price: null,
+    needed_by: dayOffset(14),
+    preferred_condition: null,
+    campus_area: "block-a",
+  };
+
+  check(
+    "a free-only need does not match a priced item",
+    matchNeedToItems(strictNeed, [pricedMonitor], () => "block-b").length === 0
+  );
+  check(
+    "editing it to accept a price finds that item",
+    matchNeedToItems(
+      { ...strictNeed, free_only: false, max_price: 60 },
+      [pricedMonitor],
+      () => "block-b"
+    ).length === 1
+  );
+  check(
+    "but a limit below the price still does not",
+    matchNeedToItems(
+      { ...strictNeed, free_only: false, max_price: 20 },
+      [pricedMonitor],
+      () => "block-b"
+    ).length === 0
+  );
+
   step("3b. Matching says no when it should");
 
   const lampAgainstFridgeNeed = matchItemToNeeds(

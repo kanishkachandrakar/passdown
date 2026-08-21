@@ -29,7 +29,9 @@ export default async function NeedPage({
   searchParams,
 }: PageProps<"/needs/[id]">) {
   const { id } = await params;
-  const fresh = (await searchParams).fresh === "1";
+  const query = await searchParams;
+  const fresh = query.fresh === "1";
+  const updated = query.updated === "1";
   const { profile, supabase } = await requireProfile();
 
   const { data: need } = await supabase
@@ -107,6 +109,12 @@ export default async function NeedPage({
         Posted a need and it matched something already on the board — this is
         the answer to the question they just asked, so say so plainly.
       */}
+      {updated ? (
+        <Notice tone="accent">
+          Need updated. We&rsquo;ve looked again with the new criteria.
+        </Notice>
+      ) : null}
+
       {fresh && matches.length > 0 ? (
         <Notice tone="accent">
           Already on campus: {matches.length}{" "}
@@ -127,12 +135,18 @@ export default async function NeedPage({
           {need.category} · {limit}
           {need.needed_by ? ` · by ${formatDate(need.needed_by)}` : ""}
         </p>
-        <div className="mt-2.5">
+        <div className="mt-2.5 flex items-center gap-3">
           <Chip tone={matches.length || yours.length ? "accent" : "neutral"}>
             {matches.length
               ? `${matches.length} ${plural(matches.length, "match", "es")}`
               : NEED_STATUS_LABEL[need.status]}
           </Chip>
+          <Link
+            href={`/needs/${need.id}/edit`}
+            className="text-sm font-medium text-accent hover:text-accent-strong"
+          >
+            Edit
+          </Link>
         </div>
       </div>
 

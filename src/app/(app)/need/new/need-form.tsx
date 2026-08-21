@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 
 import { SubmitButton } from "@/components/submit-button";
 import { Field, Input, Notice, Select } from "@/components/ui";
-import { createNeed } from "@/lib/actions/needs";
+import type { ActionState } from "@/lib/actions/shared";
 import { NO_ERROR } from "@/lib/actions/shared";
 import type { ItemCondition } from "@/lib/types";
 
@@ -15,20 +15,49 @@ function defaultNeededBy() {
   return d.toISOString().slice(0, 10);
 }
 
+export type NeedDefaults = {
+  id?: string;
+  item_name?: string;
+  category?: string;
+  free_only?: boolean;
+  max_price?: number | null;
+  needed_by?: string | null;
+  preferred_condition?: ItemCondition | null;
+};
+
+/**
+ * One form for posting a need and for editing one.
+ *
+ * Deliberately shared: a need you can create with four fields but only edit by
+ * deleting and retyping is the kind of thing that quietly stops people
+ * adjusting a price limit they got slightly wrong.
+ */
 export function NeedForm({
   categories,
   conditions,
+  action: serverAction,
+  defaults,
+  submitLabel = "Post this need",
+  pendingLabel = "Posting…",
 }: {
   categories: string[];
   conditions: { value: ItemCondition; label: string }[];
+  action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
+  defaults?: NeedDefaults;
+  submitLabel?: string;
+  pendingLabel?: string;
 }) {
-  const [state, action] = useActionState(createNeed, NO_ERROR);
-  const [freeOnly, setFreeOnly] = useState(true);
+  const [state, action] = useActionState(serverAction, NO_ERROR);
+  const [freeOnly, setFreeOnly] = useState(defaults?.free_only ?? true);
 
   const today = new Date().toISOString().slice(0, 10);
 
   return (
     <form action={action} className="mt-6 space-y-4">
+      {defaults?.id ? (
+        <input type="hidden" name="need_id" value={defaults.id} />
+      ) : null}
+
       <Field label="What are you after?" htmlFor="item_name">
         <Input
           id="item_name"
@@ -37,11 +66,17 @@ export function NeedForm({
           maxLength={80}
           autoFocus
           placeholder="Mini fridge"
+          defaultValue={defaults?.item_name}
         />
       </Field>
 
       <Field label="Category" htmlFor="category">
-        <Select id="category" name="category" required defaultValue="Dorm">
+        <Select
+          id="category"
+          name="category"
+          required
+          defaultValue={defaults?.category ?? "Dorm"}
+        >
           {categories.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -69,7 +104,11 @@ export function NeedForm({
 
         {!freeOnly ? (
           <div className="mt-3 border-t border-line pt-3">
-            <Field label="Most you'd pay" hint="Leave blank for no limit." htmlFor="max_price">
+            <Field
+              label="Most you'd pay"
+              hint="Leave blank for no limit."
+              htmlFor="max_price"
+            >
               <Input
                 id="max_price"
                 name="max_price"
@@ -78,24 +117,33 @@ export function NeedForm({
                 min={0}
                 step={1}
                 placeholder="40"
+                defaultValue={defaults?.max_price ?? undefined}
               />
             </Field>
           </div>
         ) : null}
       </div>
 
-      <Field label="Needed by" hint="We won't match items that lapse before this." htmlFor="needed_by">
+      <Field
+        label="Needed by"
+        hint="We won't match items that lapse before this."
+        htmlFor="needed_by"
+      >
         <Input
           id="needed_by"
           name="needed_by"
           type="date"
           min={today}
-          defaultValue={defaultNeededBy()}
+          defaultValue={defaults?.needed_by ?? defaultNeededBy()}
         />
       </Field>
 
       <Field label="Condition you'd accept" hint="Optional." htmlFor="preferred_condition">
-        <Select id="preferred_condition" name="preferred_condition" defaultValue="">
+        <Select
+          id="preferred_condition"
+          name="preferred_condition"
+          defaultValue={defaults?.preferred_condition ?? ""}
+        >
           <option value="">Any condition</option>
           {conditions.map((c) => (
             <option key={c.value} value={c.value}>
@@ -107,8 +155,8 @@ export function NeedForm({
 
       {state.error ? <Notice tone="danger">{state.error}</Notice> : null}
 
-      <SubmitButton size="lg" full pendingLabel="Posting…">
-        Post this need
+      <SubmitButton size="lg" full pendingLabel={pendingLabel}>
+        {submitLabel}
       </SubmitButton>
     </form>
   );

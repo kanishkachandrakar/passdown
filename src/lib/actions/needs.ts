@@ -89,18 +89,14 @@ export async function matchNewNeed(needId: string) {
   return results.length;
 }
 
-export async function createNeed(
-  _prev: ActionState,
-  formData: FormData
-): Promise<ActionState> {
-  const { profile, supabase } = await requireProfile();
-
+/** The four fields a need is made of, validated. Shared by create and edit. */
+function readNeedFields(formData: FormData) {
   const itemName = requiredText(formData.get("item_name"), "Item", 80);
-  if (!itemName.ok) return fail(itemName.error);
+  if (!itemName.ok) return { ok: false as const, error: itemName.error };
 
   const category = String(formData.get("category") ?? "");
   if (!CATEGORIES.includes(category as (typeof CATEGORIES)[number])) {
-    return fail("Pick a category.");
+    return { ok: false as const, error: "Pick a category." };
   }
 
   const freeOnly = formData.get("free_only") === "on";
@@ -109,11 +105,11 @@ export async function createNeed(
   if (!freeOnly) {
     const raw = String(formData.get("max_price") ?? "").trim();
     if (raw) {
-      const parsed = Number(raw);
-      if (!Number.isFinite(parsed) || parsed < 0) {
-        return fail("Max price must be a number.");
+      const price = Number(raw);
+      if (!Number.isFinite(price) || price < 0) {
+        return { ok: false as const, error: "Max price must be a number." };
       }
-      maxPrice = parsed;
+      maxPrice = price;
     }
   }
 
@@ -121,7 +117,8 @@ export async function createNeed(
   let neededBy: string | null = null;
   if (neededByRaw) {
     const today = new Date().toISOString().slice(0, 10);
-    if (neededByRaw < today) return fail("Pick a date in the future.");
+    if (neededByRaw < today)
+      return { ok: false as const, error: "Pick a date in the future." };
     neededBy = neededByRaw;
   }
 
@@ -130,17 +127,31 @@ export async function createNeed(
     ? (conditionRaw as ItemCondition)
     : null;
 
-  const { data: need, error } = await supabase
-    .from("needs")
-    .insert({
-      user_id: profile.id,
+  return {
+    ok: true as const,
+    values: {
       item_name: itemName.value,
       category,
       free_only: freeOnly,
       max_price: maxPrice,
       needed_by: neededBy,
       preferred_condition: preferredCondition,
-    })
+    },
+  };
+}
+
+export async function createNeed(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const { profile, supabase } = await requireProfile();
+
+  const parsed = readNeedFields(formData);
+  if (!parsed.ok) return fail(parsed.error);
+
+  const { data: need, error } = await supabase
+    .from("needs")
+    .insert({ user_id: profile.id, ...parsed.values })
     .select()
     .single();
 
@@ -155,6 +166,50 @@ export async function createNeed(
   // If it matched something now, that is the answer to the question they just
   // asked — take them straight to it rather than back to a list.
   redirect(found > 0 ? `/needs/${need.id}?fresh=1` : "/home?posted=need");
+}
+
+/**
+ * Edit a need you already posted.
+ *
+ * Changing the criteria invalidates the matches that were scored against the
+ * old ones, so they are cleared and rebuilt rather than left to accumulate —
+ * a need edited from "free only" to "under $40" should gain matches, and one
+ * edited the other way should lose them.
+ *
+ * Only while it is still looking: a need that already led to a claim is part
+ * of a handoff's history by then.
+ */
+export async function updateNeed(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const { profile, supabase } = await requireProfile();
+  const id = String(formData.get("need_id") ?? "");
+
+  const parsed = readNeedFields(formData);
+  if (!parsed.ok) return fail(parsed.error);
+
+  const { data: updated, error } = await supabase
+    .from("needs")
+    .update({ ...parsed.values, status: "open" })
+    .eq("id", id)
+    .eq("user_id", profile.id)
+    .in("status", ["open", "expired"])
+    .select("id")
+    .maybeSingle();
+
+  if (error) return fail(error.message);
+  if (!updated) {
+    return fail("That need can no longer be edited — it's already been matched.");
+  }
+
+  const admin = createAdminClient();
+  await admin.from("matches").delete().eq("need_id", id);
+  await matchNewNeed(id);
+
+  revalidatePath("/home");
+  revalidatePath(`/needs/${id}`);
+  redirect(`/needs/${id}?updated=1`);
 }
 
 export async function cancelNeed(formData: FormData) {
