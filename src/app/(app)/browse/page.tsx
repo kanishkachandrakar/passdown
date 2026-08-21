@@ -5,8 +5,6 @@ import { areaOfPickup, proximityRank } from "@/lib/campus";
 import { requireProfile } from "@/lib/session";
 import { CATEGORIES } from "@/lib/types";
 import { getViewMode } from "@/lib/view-mode";
-import { localInboxUrl } from "@/lib/local-dev";
-import { SampleListingsButton } from "@/components/sample-listings-button";
 import { CategoryFilter } from "./category-filter";
 
 export const metadata = { title: "Browse — Passdown" };
@@ -83,10 +81,6 @@ export default async function BrowsePage({
               </LinkButton>
             }
           />
-          {/* A button, not a command — see lib/actions/demo.ts */}
-          {!category && localInboxUrl() ? (
-            <SampleListingsButton institution={profile.institution} />
-          ) : null}
         </>
       ) : (
         <>

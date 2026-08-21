@@ -26,7 +26,9 @@ npm run dev
 
 Then http://localhost:3000 → **Enter Passdown** → any institutional email → grab the code from http://127.0.0.1:54324.
 
-Once you're in, `npm run seed:demo` fills Browse with a dozen sample listings at your own institution, so it isn't an empty grid. They're marked **Sample**, and the **Demo / Real** switch in the header removes them. Their photos are freely-licensed images from Wikimedia Commons — credited in `docs/photo-credits.md`.
+Browse fills itself with a dozen sample listings the first time someone from your institution signs in — nothing to run, nothing to click. They're marked **Sample**, and the **Demo / Real** switch in the header removes them. Their photos are freely-licensed images from Wikimedia Commons, credited in `docs/photo-credits.md`.
+
+This only ever happens on a local install. Deployments seed nothing — see `docs/deploy.md`.
 
 To see the thing this project is actually about — an item that can be claimed exactly once — sign in as a second student in a private window, put them in a different block, and claim the same item from both. Or skip the setup:
 

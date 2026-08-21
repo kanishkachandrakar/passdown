@@ -139,3 +139,49 @@ export async function seedDemoFor(domain: string): Promise<number> {
 
   return rows.length;
 }
+
+/* ------------------------------------------------------------ auto-seeding */
+
+/**
+ * Seed a campus the first time somebody from it signs in, without asking.
+ *
+ * An empty Browse is technically the honest state of a brand new campus, but
+ * it tells a first-time visitor nothing about what the app does. Offering a
+ * button was still a question they shouldn't have to answer.
+ *
+ * Runs at most once per institution, ever: the check is "do the sample
+ * accounts exist", not "are there any items", so clearing the board by hand
+ * doesn't quietly refill it.
+ */
+
+// Domains already dealt with in this process — saves a round trip on every
+// subsequent page load. In-flight promises are shared so two simultaneous
+// requests can't both seed and collide.
+const ensured = new Map<string, Promise<void>>();
+
+async function alreadySeeded(domain: string): Promise<boolean> {
+  const admin = createAdminClient();
+  const probe = `${DEMO_STUDENTS[0].handle}@${domain}`;
+
+  const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  return (data?.users ?? []).some((u) => u.email === probe);
+}
+
+export async function ensureDemoSeeded(domain: string): Promise<void> {
+  const existing = ensured.get(domain);
+  if (existing) return existing;
+
+  const run = (async () => {
+    try {
+      if (await alreadySeeded(domain)) return;
+      await seedDemoFor(domain);
+    } catch {
+      // Never let sample data break a real page render. If it fails the
+      // student simply sees an empty Browse, which is the truth anyway.
+      ensured.delete(domain);
+    }
+  })();
+
+  ensured.set(domain, run);
+  return run;
+}

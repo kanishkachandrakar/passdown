@@ -53,7 +53,9 @@ changes the symbol and locale there and nowhere else.
 That means both `supabase/seed.sql` and `npm run seed:demo`.
 
 `seed.sql` populates "Students near you need"; `seed:demo` creates three sample
-students and twelve sample listings so Browse isn't empty. Both exist so a
+students and twelve sample listings so Browse isn't empty. On a local install
+the latter also runs automatically the first time someone from a new campus
+signs in — gated on the Supabase URL being local, so a deployment never does it. Both exist so a
 fresh install has something to look at, and both are labelled in the UI
 precisely because they are fictional.
 
