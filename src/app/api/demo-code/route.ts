@@ -64,17 +64,44 @@ export async function GET(request: NextRequest) {
     // generateLink mints a one-time code WITHOUT sending mail. That is what
     // makes this immune to the project's hourly email limit — no message is
     // ever sent, so there is nothing to rate limit.
-    const { data, error } = await admin.auth.admin.generateLink({
-      type: "magiclink",
-      email: check.email,
-    });
+    const mint = () =>
+      admin.auth.admin.generateLink({ type: "magiclink", email: check.email });
+
+    let { data, error } = await mint();
+
+    /*
+      Locally, generateLink creates the account itself, so this branch never
+      runs. A hosted project is where it earns its keep: depending on the
+      auth settings, a first-time address comes back either "user not found"
+      or "signups not allowed for otp" — and the promise on the verify screen,
+      "any university email, real or made up", is false in both cases unless
+      we create the account ourselves. Admin createUser is not subject to the
+      signup setting; the trigger on auth.users then fills in the profile, so
+      the address lands on campus with a name and an institution derived from
+      the domain, exactly as an emailed signup would.
+    */
+    if (error && /not found|not exist|not allowed|disabled/i.test(error.message)) {
+      const { error: createError } = await admin.auth.admin.createUser({
+        email: check.email,
+        email_confirm: true,
+      });
+      if (createError) {
+        return NextResponse.json({ code: null, error: createError.message });
+      }
+      ({ data, error } = await mint());
+    }
 
     if (error) {
       return NextResponse.json({ code: null, error: error.message });
     }
 
     return NextResponse.json({ code: data.properties?.email_otp ?? null });
-  } catch {
-    return NextResponse.json({ code: null });
+  } catch (thrown) {
+    // A missing service-role key throws here. Saying so beats a silent null
+    // that the screen can only render as "still fetching".
+    return NextResponse.json({
+      code: null,
+      error: thrown instanceof Error ? thrown.message : "could not mint a code",
+    });
   }
 }

@@ -31,6 +31,17 @@ export function VerifyForm({
   const [busy, setBusy] = useState(false);
   const [localCode, setLocalCode] = useState<string | null>(null);
 
+  const openSignin = envFlag(process.env.NEXT_PUBLIC_DEMO_OPEN_SIGNIN);
+  const demoEmail = process.env.NEXT_PUBLIC_DEMO_ACCOUNT_EMAIL?.toLowerCase();
+  /*
+    Open sign-in mints the code for whatever address was typed, so every
+    address gets it on screen — not just the designated demo one. Leaving
+    that out was the bug: the screen said "check your email" and then showed
+    nothing, on a deployment that never sends email.
+  */
+  const minted =
+    openSignin || Boolean(demoEmail && email.trim().toLowerCase() === demoEmail);
+
   async function sendCode(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -49,8 +60,6 @@ export function VerifyForm({
       the project's hourly email limit — which is exactly what stops somebody
       evaluating this from getting in.
     */
-    const openSignin = envFlag(process.env.NEXT_PUBLIC_DEMO_OPEN_SIGNIN);
-    const demoEmail = process.env.NEXT_PUBLIC_DEMO_ACCOUNT_EMAIL?.toLowerCase();
     if (openSignin || (demoEmail && check.email === demoEmail)) {
       setBusy(false);
       setEmail(check.email);
@@ -176,15 +185,16 @@ export function VerifyForm({
       </button>
 
       <h1 className="mt-6 text-3xl font-semibold tracking-tight text-ink">
-        Check your email
+        {minted ? "Here's your code" : "Check your email"}
       </h1>
       <p className="mt-2 text-[15px] leading-relaxed text-muted">
-        We sent a six-digit code to{" "}
+        {minted ? "Signing in as " : "We sent a six-digit code to "}
         <span className="break-all text-ink">{email}</span>.
       </p>
 
       <CodeHelper
         email={email}
+        minted={minted}
         code={localCode}
         onCode={setLocalCode}
         onUse={setCode}
@@ -269,32 +279,36 @@ function DemoAccountPrompt({ onUse }: { onUse: (email: string) => void }) {
 }
 
 /**
- * Shows the sign-in code without needing an inbox, in two situations:
+ * Shows the sign-in code without needing an inbox, in three situations:
  *
  *   - running locally, where mail is captured by Mailpit rather than sent
  *   - for the one designated demo account on a deployment, so somebody
  *     evaluating this can get in without an inbox of ours
+ *   - for every address, while DEMO_OPEN_SIGNIN is on
  *
- * Any other address on a deployment gets nothing at all — printing codes on
- * request would be an authentication bypass, not a convenience.
+ * That last one is an authentication bypass, and is meant to be: it is how a
+ * judge signs in as two different students in two tabs. With the flag off — the
+ * default, and the only correct setting once a real student has an account —
+ * nothing is minted and nothing is shown. See `/api/demo-code`.
  */
 function CodeHelper({
   email,
+  minted,
   code,
   onCode,
   onUse,
 }: {
   email: string;
+  /** The code was minted server-side rather than emailed — see VerifyForm. */
+  minted: boolean;
   code: string | null;
   onCode: (code: string | null) => void;
   onUse: (code: string) => void;
 }) {
   const inbox = localInboxUrl();
-  const demoEmail = process.env.NEXT_PUBLIC_DEMO_ACCOUNT_EMAIL?.toLowerCase();
-  const isDemoAccount = Boolean(
-    demoEmail && email.trim().toLowerCase() === demoEmail,
-  );
-  const shown = Boolean(inbox) || isDemoAccount;
+  const shown = Boolean(inbox) || minted;
+
+  const [failed, setFailed] = useState<string | null>(null);
 
   // Poll briefly — the email lands a moment after the
   // request returns. Gives up quietly; the code can always be typed by hand.
@@ -306,17 +320,32 @@ function CodeHelper({
     const look = async () => {
       tries += 1;
       try {
-        const endpoint = isDemoAccount
-          ? "/api/demo-code"
-          : "/api/dev/latest-code";
+        const endpoint = minted ? "/api/demo-code" : "/api/dev/latest-code";
         const r = await fetch(`${endpoint}?email=${encodeURIComponent(email)}`);
         const data = await r.json();
         if (!cancelled && data.code) {
+          setFailed(null);
           onCode(data.code);
           return;
         }
+        /*
+          A code that is merely late reads the same as one that is never
+          coming, until the tries run out. Then say which it was — a missing
+          service-role key and a 404 from a disabled flag are otherwise
+          indistinguishable from a slow network.
+        */
+        if (!cancelled && tries >= 10) {
+          setFailed(
+            typeof data?.reason === "string"
+              ? data.reason
+              : typeof data?.error === "string"
+                ? data.error
+                : null,
+          );
+        }
       } catch {
         // ignore — this is a convenience, not a dependency
+        if (!cancelled && tries >= 10) setFailed(null);
       }
       if (!cancelled && tries < 10) setTimeout(look, 700);
     };
@@ -325,7 +354,7 @@ function CodeHelper({
     return () => {
       cancelled = true;
     };
-  }, [shown, isDemoAccount, email, code, onCode]);
+  }, [shown, minted, email, code, onCode]);
 
   if (!shown) return null;
 
@@ -357,7 +386,9 @@ function CodeHelper({
         </>
       ) : !inbox ? (
         <p className="mt-1 text-sm leading-relaxed text-warn">
-          Fetching your code…
+          {failed
+            ? `Couldn't fetch your code — ${failed}. Ask whoever deployed this to check DEMO_OPEN_SIGNIN and SUPABASE_SERVICE_ROLE_KEY.`
+            : "Fetching your code…"}
         </p>
       ) : (
         <p className="mt-1 text-sm leading-relaxed text-warn">
