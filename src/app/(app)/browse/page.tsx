@@ -6,34 +6,8 @@ import { requireProfile } from "@/lib/session";
 import { CATEGORIES } from "@/lib/types";
 import { getViewMode } from "@/lib/view-mode";
 import { localInboxUrl } from "@/lib/local-dev";
+import { SampleListingsButton } from "@/components/sample-listings-button";
 import { CategoryFilter } from "./category-filter";
-
-/**
- * Local development only.
- *
- * Passdown is campus-scoped, so listings seeded for one institution are
- * invisible to an account at another — correct, and baffling the first time it
- * happens to you. If Browse is empty on a local install, say why and give the
- * exact command.
- */
-function EmptyBrowseDevHint({ institution }: { institution: string }) {
-  if (!localInboxUrl()) return null;
-
-  return (
-    <div className="mt-3 rounded-xl border border-warn/25 bg-warn-soft px-3.5 py-3">
-      <p className="text-sm font-medium text-warn">
-        Running locally with nothing seeded for {institution}?
-      </p>
-      <p className="mt-1 text-sm leading-relaxed text-warn">
-        Sample listings are scoped to one institution, like real ones. To fill
-        this page for yours:
-      </p>
-      <code className="mt-2 block rounded-lg bg-surface/70 px-2.5 py-1.5 font-mono text-[12px] text-ink">
-        npm run seed:demo -- --domain={institution}
-      </code>
-    </div>
-  );
-}
 
 export const metadata = { title: "Browse — Passdown" };
 
@@ -44,7 +18,9 @@ const PAGE_SIZE = 40;
  * scroll. It exists for the student who doesn't know what they want yet, and
  * it is still sorted by walk time.
  */
-export default async function BrowsePage({ searchParams }: PageProps<"/browse">) {
+export default async function BrowsePage({
+  searchParams,
+}: PageProps<"/browse">) {
   const { profile, supabase } = await requireProfile();
   const params = await searchParams;
   const category = typeof params.category === "string" ? params.category : null;
@@ -63,7 +39,10 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
   // greyed out — see the Demo/Real switch in the header.
   if (viewMode === "user") query = query.eq("is_demo", false);
 
-  if (category && CATEGORIES.includes(category as (typeof CATEGORIES)[number])) {
+  if (
+    category &&
+    CATEGORIES.includes(category as (typeof CATEGORIES)[number])
+  ) {
     query = query.eq("category", category);
   }
 
@@ -72,7 +51,7 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
   const items = (data ?? []).sort(
     (a, b) =>
       proximityRank(profile.campus_area, areaOfPickup(a.pickup_location)) -
-      proximityRank(profile.campus_area, areaOfPickup(b.pickup_location))
+      proximityRank(profile.campus_area, areaOfPickup(b.pickup_location)),
   );
 
   return (
@@ -84,8 +63,8 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
           On campus right now
         </h1>
         <p className="mt-1 text-[15px] text-muted">
-          Everything here is a walk away and every owner is a verified student at{" "}
-          {profile.institution}. Closest first.
+          Everything here is a walk away and every owner is a verified student
+          at {profile.institution}. Closest first.
         </p>
       </div>
 
@@ -94,7 +73,9 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
       {items.length === 0 ? (
         <>
           <EmptyState
-            title={category ? `Nothing in ${category} yet` : "Nothing released yet"}
+            title={
+              category ? `Nothing in ${category} yet` : "Nothing released yet"
+            }
             body="Posting what you need works better than waiting here — it watches for you and tells you the moment something fits."
             action={
               <LinkButton href="/need/new" variant="soft" size="sm">
@@ -102,7 +83,10 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
               </LinkButton>
             }
           />
-          <EmptyBrowseDevHint institution={profile.institution} />
+          {/* A button, not a command — see lib/actions/demo.ts */}
+          {!category && localInboxUrl() ? (
+            <SampleListingsButton institution={profile.institution} />
+          ) : null}
         </>
       ) : (
         <>
