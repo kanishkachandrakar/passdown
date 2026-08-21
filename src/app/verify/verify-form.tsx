@@ -42,6 +42,22 @@ export function VerifyForm({
     }
 
     setBusy(true);
+
+    /*
+      The demo account never sends mail: its code is minted server-side by
+      generateLink. Going through signInWithOtp would burn a message against
+      the project's hourly email limit — which is exactly what stops somebody
+      evaluating this from getting in.
+    */
+    const demoEmail = process.env.NEXT_PUBLIC_DEMO_ACCOUNT_EMAIL?.toLowerCase();
+    if (demoEmail && check.email === demoEmail) {
+      setBusy(false);
+      setEmail(check.email);
+      setStep("code");
+      setLocalCode(null);
+      return;
+    }
+
     const supabase = createClient();
     const { error: sendError } = await supabase.auth.signInWithOtp({
       email: check.email,
@@ -58,7 +74,11 @@ export function VerifyForm({
     setBusy(false);
 
     if (sendError) {
-      setError(sendError.message);
+      setError(
+        /rate limit/i.test(sendError.message)
+          ? "Too many sign-in emails from this project in the last hour. Wait a little, or use the demo account below — it doesn't send email at all."
+          : sendError.message,
+      );
       return;
     }
 
