@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Avatar } from "@/components/avatar";
 import { HeaderNav } from "@/components/app-nav";
 import { ViewModeSwitch } from "@/components/view-mode-switch";
 import { areaLabel } from "@/lib/campus";
@@ -39,22 +40,25 @@ export function AppHeader({
 
           <Link
             href="/profile"
-            className="rounded-full border border-line bg-surface px-2.5 py-1.5 text-right"
+            className="flex items-center gap-2 rounded-full border border-line bg-surface py-1 pl-2.5 pr-1"
           >
-            <span className="block text-[11px] leading-tight text-faint">
-              {profile.institution}
+            <span className="text-right">
+              <span className="block text-[11px] leading-tight text-faint">
+                {profile.institution}
+              </span>
+              <span className="block text-[12px] font-medium leading-tight text-ink">
+                {areaLabel(profile.campus_area) ?? "Set your block"}
+              </span>
             </span>
-            <span className="block text-[12px] font-medium leading-tight text-ink">
-              {areaLabel(profile.campus_area) ?? "Set your block"}
-            </span>
+            <Avatar name={profile.name} url={profile.avatar_url} size="sm" />
           </Link>
         </div>
       </div>
 
       {showViewSwitch && viewMode === "demo" ? (
         <p className="border-t border-warn/20 bg-warn-soft px-4 py-1.5 text-center text-[11px] font-medium text-warn">
-          Demo view — sample listings and campus demand are included and
-          labelled. Switch to Real to hide them.
+          Demo view — the campus demand figures below are sample data, not real
+          usage. Switch to Real to hide them.
         </p>
       ) : null}
     </header>

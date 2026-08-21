@@ -21,9 +21,16 @@ export async function saveProfile(
     return fail("Pick the block or building you're based in.");
   }
 
+  const avatarUrl = String(formData.get("avatar_url") ?? "").trim() || null;
+
   const { error } = await supabase
     .from("profiles")
-    .update({ name: name.value, campus_area: campusArea })
+    .update({
+      name: name.value,
+      campus_area: campusArea,
+      // an empty field means "leave it alone", not "remove my picture"
+      ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+    })
     .eq("id", profile.id);
 
   if (error) return fail(error.message);

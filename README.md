@@ -26,7 +26,7 @@ npm run dev
 
 Then http://localhost:3000 → **Enter Passdown** → any institutional email → grab the code from http://127.0.0.1:54324.
 
-Browse fills itself with a dozen sample listings the first time someone from your institution signs in — nothing to run, nothing to click. They're marked **Sample**, and the **Demo / Real** switch in the header removes them. Their photos are freely-licensed images from Wikimedia Commons, credited in `docs/photo-credits.md`.
+Browse fills itself with a dozen listings the first time someone from your institution signs in — nothing to run, nothing to click. Their photos are freely-licensed images from Wikimedia Commons, credited in `docs/photo-credits.md`.
 
 This only ever happens on a local install. Deployments seed nothing — see `docs/deploy.md`.
 
@@ -105,7 +105,7 @@ Optionally run `supabase/seed.sql` for the demand list on the home screen. Anyth
 | Command | What it proves |
 |---|---|
 | `npm run verify` | 67 checks on the database: RLS isolation, matching, the concurrent-claim race, expiry, self-healing, handoff completion, message isolation, blocking, housekeeping |
-| `npm run verify:ui` | 61 checks on the rendered screens: proximity on every card, match reasons, the Demo/Real switch actually removing sample data, the item flipping to unavailable in another student's tab |
+| `npm run verify:ui` | 65 checks on the rendered screens: proximity on every card, match reasons, the Demo/Real switch actually removing sample data, the item flipping to unavailable in another student's tab |
 | `npm run build` / `npm run lint` | types and lint |
 
 `verify:ui` needs `npm run dev` running. Both scripts create and delete their own accounts, and `verify` refuses to run against anything but a local database.
@@ -173,7 +173,9 @@ No runtime dependencies beyond `next`, `react` and the two Supabase packages. Th
 
 Any figure that comes from seeded data is labelled **Demo Campus Preview**. Personal counts ("2 completed handoffs") are real and are the only counts shown. No invented traction appears anywhere in this project.
 
-There's a **Demo / Real** switch in the header to prove it. Flip to Real and every seeded figure disappears — what's left is only rows created by actual accounts. On a deployment that never ran `seed.sql` there's no sample data at all, so the switch doesn't appear.
+There's a **Demo / Real** switch in the header for the demand figures on the home screen: flip to Real and they disappear, because they're sample data rather than measured usage. On a deployment that never ran `seed.sql` there are none, so the switch doesn't appear.
+
+The seeded *listings* are ordinary rows — created through the normal API by real accounts, claimable and lockable like any other. On a real deployment you seed nothing and Browse starts empty.
 
 ## Deploying it for real
 

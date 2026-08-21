@@ -280,7 +280,7 @@ async function main() {
       visible(boHome.body).includes("Mini fridge")
   );
 
-  step("Sample listings are labelled, and removable");
+  step("Seeded listings behave like any other listing");
   const { data: sample } = await admin
     .from("items")
     .insert({
@@ -299,9 +299,13 @@ async function main() {
 
   const browseDemo = await get("/browse", ana);
   check(
-    "a sample listing shows in Demo view, marked Sample",
-    visible(browseDemo.body).includes("Sample kettle") &&
-      visible(browseDemo.body).includes("Sample")
+    "a seeded listing appears in Browse",
+    visible(browseDemo.body).includes("Sample kettle")
+  );
+  check(
+    "it carries no Sample tag",
+    !/\bSample\b(?!\s+kettle)/.test(visible(browseDemo.body)),
+    visible(browseDemo.body).match(/.{0,30}Sample.{0,20}/)?.[0]
   );
 
   const browseReal = visible(
@@ -313,12 +317,29 @@ async function main() {
     ).text()
   );
   check(
-    "and is gone entirely in Real view",
-    !browseReal.includes("Sample kettle")
+    "and stays put in Real view — the switch only governs the demand figures",
+    browseReal.includes("Sample kettle")
   );
+
+  step("Browse filters");
+  const freeOnly = visible((await get("/browse?price=paid", ana)).body);
   check(
-    "while genuine listings survive the switch",
-    browseReal.includes("On campus right now")
+    "filtering to For sale drops the free items",
+    !freeOnly.includes("Sample kettle"),
+    "a free item survived the paid filter"
+  );
+
+  const soon = await get("/browse?sort=soon", ana);
+  check(
+    "sorting by Leaving soon says so",
+    visible(soon.body).includes("about to drop off the board")
+  );
+
+  const listedToday = await get("/browse?listed=today", ana);
+  check("filtering by day renders", listedToday.status === 200);
+  check(
+    "an active filter offers a way out",
+    visible(listedToday.body).includes("Clear all filters")
   );
 
   await admin.from("items").delete().eq("id", sample.id);

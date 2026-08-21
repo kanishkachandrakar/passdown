@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { Avatar } from "@/components/avatar";
 import { ItemCard } from "@/components/item-card";
 import { MessageButton } from "@/components/message-button";
 import { BlockButton } from "@/components/block-button";
@@ -16,10 +17,13 @@ export const metadata = { title: "Student — Passdown" };
  *
  * Trust surface plus what else they're offering — the two things worth
  * knowing before you walk across campus to meet someone. Deliberately not a
- * social profile: no bio, no photo, no following, no ratings. Everything here
- * is either a fact the database counted or something they listed.
+ * social profile: a picture and a name, but no bio, no following and no
+ * ratings. Everything here is either a fact the database counted or something
+ * they listed.
  */
-export default async function StudentPage({ params }: PageProps<"/students/[id]">) {
+export default async function StudentPage({
+  params,
+}: PageProps<"/students/[id]">) {
   const { id } = await params;
   const { profile, supabase } = await requireProfile();
 
@@ -29,7 +33,9 @@ export default async function StudentPage({ params }: PageProps<"/students/[id]"
   // campus simply doesn't exist as far as this query is concerned.
   const { data: student } = await supabase
     .from("profiles")
-    .select("id, name, institution, campus_area, successful_handoffs, missed_pickups")
+    .select(
+      "id, name, avatar_url, institution, campus_area, successful_handoffs, missed_pickups",
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -61,20 +67,23 @@ export default async function StudentPage({ params }: PageProps<"/students/[id]"
         ← Browse
       </Link>
 
-      <section>
-        <h1 className="break-words text-2xl font-semibold tracking-tight text-ink">
-          {student.name}
-        </h1>
-        <p className="mt-1 text-[15px] text-muted">
-          {student.institution}
-          {student.campus_area ? ` · ${areaLabel(student.campus_area)}` : ""}
-          {walk !== null && walk > 0 ? ` · ${walk} min walk from you` : ""}
-          {walk === 0 ? " · your block" : ""}
-        </p>
+      <section className="flex items-start gap-4">
+        <Avatar name={student.name} url={student.avatar_url} size="xl" />
+        <div className="min-w-0">
+          <h1 className="break-words text-2xl font-semibold tracking-tight text-ink">
+            {student.name}
+          </h1>
+          <p className="mt-1 text-[15px] text-muted">
+            {student.institution}
+            {student.campus_area ? ` · ${areaLabel(student.campus_area)}` : ""}
+            {walk !== null && walk > 0 ? ` · ${walk} min walk from you` : ""}
+            {walk === 0 ? " · your block" : ""}
+          </p>
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Chip tone="accent">Verified Student ✓</Chip>
-          {blocked ? <Chip tone="danger">Blocked</Chip> : null}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Chip tone="accent">Verified Student ✓</Chip>
+            {blocked ? <Chip tone="danger">Blocked</Chip> : null}
+          </div>
         </div>
       </section>
 
@@ -99,7 +108,10 @@ export default async function StudentPage({ params }: PageProps<"/students/[id]"
 
       {!blocked ? (
         <section>
-          <MessageButton otherId={student.id} label={`Message ${student.name}`} />
+          <MessageButton
+            otherId={student.id}
+            label={`Message ${student.name}`}
+          />
         </section>
       ) : null}
 
@@ -133,7 +145,11 @@ export default async function StudentPage({ params }: PageProps<"/students/[id]"
       </section>
 
       <section className="border-t border-line pt-6">
-        <BlockButton otherId={student.id} name={student.name} blocked={blocked} />
+        <BlockButton
+          otherId={student.id}
+          name={student.name}
+          blocked={blocked}
+        />
         <p className="mt-2 text-[12px] leading-relaxed text-faint">
           Blocking stops messages in both directions. It doesn&rsquo;t hide
           their listings, and it doesn&rsquo;t tell them.

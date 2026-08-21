@@ -56,6 +56,11 @@ export function hasLapsed(iso: string): boolean {
   return new Date(iso).getTime() <= Date.now();
 }
 
+/** ISO timestamp N days ago. Lives here for the same reason hasLapsed does. */
+export function daysAgoIso(days: number): string {
+  return new Date(Date.now() - days * 86_400_000).toISOString();
+}
+
 export function formatCountdown(msRemaining: number): string {
   const total = Math.max(0, Math.floor(msRemaining / 1000));
   const m = Math.floor(total / 60);

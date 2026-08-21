@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Avatar } from "@/components/avatar";
 import { LiveRefresh } from "@/components/live-refresh";
 import { Chip, EmptyState, LinkButton } from "@/components/ui";
 import { requireProfile } from "@/lib/session";
@@ -14,8 +15,8 @@ type Row = {
   user_b: string;
   last_message_at: string;
   items: Pick<Item, "name" | "photo_url" | "category"> | null;
-  a: Pick<Profile, "id" | "name"> | null;
-  b: Pick<Profile, "id" | "name"> | null;
+  a: Pick<Profile, "id" | "name" | "avatar_url"> | null;
+  b: Pick<Profile, "id" | "name" | "avatar_url"> | null;
 };
 
 const timeAgo = (iso: string) => {
@@ -34,7 +35,7 @@ export default async function MessagesPage() {
   const { data } = await supabase
     .from("conversations")
     .select(
-      "id, item_id, user_a, user_b, last_message_at, items(name, photo_url, category), a:profiles!conversations_user_a_fkey(id, name), b:profiles!conversations_user_b_fkey(id, name)"
+      "id, item_id, user_a, user_b, last_message_at, items(name, photo_url, category), a:profiles!conversations_user_a_fkey(id, name, avatar_url), b:profiles!conversations_user_b_fkey(id, name, avatar_url)"
     )
     .order("last_message_at", { ascending: false })
     .limit(50);
@@ -100,8 +101,9 @@ export default async function MessagesPage() {
                   href={`/messages/${c.id}`}
                   className="block rounded-2xl border border-line bg-surface p-3.5 shadow-card transition hover:-translate-y-0.5 hover:border-accent-line hover:shadow-lift"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="truncate font-medium text-ink">
+                  <div className="flex items-center gap-3">
+                    <Avatar name={other?.name ?? "?"} url={other?.avatar_url} />
+                    <p className="min-w-0 flex-1 truncate font-medium text-ink">
                       {other?.name ?? "A student"}
                     </p>
                     <span className="shrink-0 text-[12px] text-faint">

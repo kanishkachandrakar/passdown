@@ -1,8 +1,15 @@
 import Link from "next/link";
 
+import { Avatar } from "@/components/avatar";
 import { ItemCard } from "@/components/item-card";
 import { SubmitButton } from "@/components/submit-button";
-import { Card, Chip, EmptyState, LinkButton, SectionHeading } from "@/components/ui";
+import {
+  Card,
+  Chip,
+  EmptyState,
+  LinkButton,
+  SectionHeading,
+} from "@/components/ui";
 import { signOut } from "@/lib/actions/profile";
 import { areaLabel } from "@/lib/campus";
 import { formatDate, NEED_STATUS_LABEL, plural } from "@/lib/format";
@@ -44,20 +51,26 @@ export default async function ProfilePage() {
   const needs = needsResult.data ?? [];
   const completed = handoffsResult.data ?? [];
 
-  const liveItems = items.filter((i) => i.status === "available" || i.status === "reserved");
+  const liveItems = items.filter(
+    (i) => i.status === "available" || i.status === "reserved",
+  );
   const pastItems = items.filter((i) => !liveItems.includes(i));
 
   return (
     <div className="mx-auto max-w-2xl space-y-8 pd-in">
-      <section>
-        <h1 className="break-words text-2xl font-semibold tracking-tight text-ink">
-          {profile.name}
-        </h1>
-        <p className="mt-1 text-[15px] text-muted">
-          {profile.institution} · {areaLabel(profile.campus_area) ?? "No block set"}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Chip tone="accent">Verified Student ✓</Chip>
+      <section className="flex items-start gap-4">
+        <Avatar name={profile.name} url={profile.avatar_url} size="xl" />
+        <div className="min-w-0">
+          <h1 className="break-words text-2xl font-semibold tracking-tight text-ink">
+            {profile.name}
+          </h1>
+          <p className="mt-1 text-[15px] text-muted">
+            {profile.institution} ·{" "}
+            {areaLabel(profile.campus_area) ?? "No block set"}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Chip tone="accent">Verified Student ✓</Chip>
+          </div>
         </div>
       </section>
 
@@ -122,7 +135,9 @@ export default async function ProfilePage() {
                     {need.item_name}
                   </span>
                   <span className="block text-[13px] text-faint">
-                    {need.needed_by ? `by ${formatDate(need.needed_by)}` : "No date"}
+                    {need.needed_by
+                      ? `by ${formatDate(need.needed_by)}`
+                      : "No date"}
                   </span>
                 </span>
                 <Chip>{NEED_STATUS_LABEL[need.status]}</Chip>
@@ -174,7 +189,12 @@ export default async function ProfilePage() {
           Change your name or block
         </LinkButton>
         <form action={signOut}>
-          <SubmitButton variant="ghost" size="sm" full pendingLabel="Signing out…">
+          <SubmitButton
+            variant="ghost"
+            size="sm"
+            full
+            pendingLabel="Signing out…"
+          >
             Sign out
           </SubmitButton>
         </form>

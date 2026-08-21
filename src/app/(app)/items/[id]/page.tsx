@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Avatar } from "@/components/avatar";
 import { ClaimForm } from "@/components/claim-form";
 import { ItemHero } from "@/components/item-thumb";
 import { MessageButton } from "@/components/message-button";
@@ -37,6 +38,7 @@ export default async function ItemPage({ params }: PageProps<"/items/[id]">) {
   const owner = item.owner as {
     id: string;
     name: string;
+    avatar_url: string | null;
     campus_area: string | null;
     successful_handoffs: number;
   } | null;
@@ -121,10 +123,13 @@ export default async function ItemPage({ params }: PageProps<"/items/[id]">) {
             <span className="shrink-0 text-[13px] text-faint">Student</span>
             <Link
               href={`/students/${owner?.id}`}
-              className="text-right text-[15px] text-ink underline decoration-line underline-offset-2 hover:text-accent"
+              className="flex min-w-0 items-center justify-end gap-2 text-right text-[15px] text-ink hover:text-accent"
             >
-              {owner?.name ?? "A student"} · Verified ✓ ·{" "}
-              {owner?.successful_handoffs ?? 0} completed
+              <span className="truncate">
+                {owner?.name ?? "A student"} · Verified ✓ ·{" "}
+                {owner?.successful_handoffs ?? 0} completed
+              </span>
+              <Avatar name={owner?.name ?? "?"} url={owner?.avatar_url} size="sm" />
             </Link>
           </div>
         )}

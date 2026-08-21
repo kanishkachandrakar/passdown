@@ -396,6 +396,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           campus_area: string | null
           created_at: string
           email: string
@@ -407,6 +408,7 @@ export type Database = {
           verified: boolean
         }
         Insert: {
+          avatar_url?: string | null
           campus_area?: string | null
           created_at?: string
           email: string
@@ -418,6 +420,7 @@ export type Database = {
           verified?: boolean
         }
         Update: {
+          avatar_url?: string | null
           campus_area?: string | null
           created_at?: string
           email?: string

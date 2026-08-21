@@ -37,6 +37,10 @@ create table if not exists profiles (
   created_at          timestamptz not null default now()
 );
 
+-- Optional. A face makes meeting a stranger in a lobby easier; requiring one
+-- would exclude people, so the initial stays a first-class fallback.
+alter table profiles add column if not exists avatar_url text;
+
 -- auto-create a profile row on signup
 create or replace function handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -781,6 +785,9 @@ end $$;
 insert into storage.buckets (id, name, public) values ('item-photos','item-photos', true)
 on conflict (id) do nothing;
 
+insert into storage.buckets (id, name, public) values ('avatars','avatars', true)
+on conflict (id) do nothing;
+
 drop policy if exists item_photos_read   on storage.objects;
 drop policy if exists item_photos_insert on storage.objects;
 drop policy if exists item_photos_delete on storage.objects;
@@ -794,3 +801,22 @@ create policy item_photos_insert on storage.objects for insert to authenticated
 
 create policy item_photos_delete on storage.objects for delete to authenticated
   using (bucket_id = 'item-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists avatars_read   on storage.objects;
+drop policy if exists avatars_insert on storage.objects;
+drop policy if exists avatars_update on storage.objects;
+drop policy if exists avatars_delete on storage.objects;
+
+create policy avatars_read on storage.objects for select
+  using (bucket_id = 'avatars');
+
+-- same rule as item photos: you may only write into a folder named after your
+-- own user id
+create policy avatars_insert on storage.objects for insert to authenticated
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy avatars_update on storage.objects for update to authenticated
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy avatars_delete on storage.objects for delete to authenticated
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Avatar } from "@/components/avatar";
 import { ItemThumb } from "@/components/item-thumb";
 import { LiveRefresh } from "@/components/live-refresh";
 import { MessageComposer } from "@/components/message-composer";
@@ -20,7 +21,7 @@ export default async function ConversationPage({
   const { data: conversation } = await supabase
     .from("conversations")
     .select(
-      "*, items(*), a:profiles!conversations_user_a_fkey(id, name, campus_area, successful_handoffs), b:profiles!conversations_user_b_fkey(id, name, campus_area, successful_handoffs)"
+      "*, items(*), a:profiles!conversations_user_a_fkey(id, name, avatar_url, campus_area, successful_handoffs), b:profiles!conversations_user_b_fkey(id, name, avatar_url, campus_area, successful_handoffs)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -31,7 +32,7 @@ export default async function ConversationPage({
 
   const other = (
     conversation.user_a === profile.id ? conversation.b : conversation.a
-  ) as Pick<Profile, "id" | "name" | "successful_handoffs"> | null;
+  ) as Pick<Profile, "id" | "name" | "avatar_url" | "successful_handoffs"> | null;
 
   const item = conversation.items as Item | null;
 
@@ -62,19 +63,20 @@ export default async function ConversationPage({
         ← Messages
       </Link>
 
-      <div className="mt-4 flex items-center justify-between gap-3">
+      <Link
+        href={`/students/${other?.id}`}
+        className="mt-4 flex items-center gap-3"
+      >
+        <Avatar name={other?.name ?? "?"} url={other?.avatar_url} size="lg" />
         <div className="min-w-0">
-          <Link
-            href={`/students/${other?.id}`}
-            className="truncate text-xl font-semibold text-ink hover:text-accent"
-          >
+          <p className="truncate text-xl font-semibold text-ink">
             {other?.name ?? "A student"}
-          </Link>
+          </p>
           <p className="text-[13px] text-faint">
             Verified ✓ · {other?.successful_handoffs ?? 0} completed handoffs
           </p>
         </div>
-      </div>
+      </Link>
 
       {item ? (
         <Link

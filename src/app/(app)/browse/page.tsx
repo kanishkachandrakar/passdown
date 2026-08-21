@@ -2,10 +2,10 @@ import { ItemCard } from "@/components/item-card";
 import { LiveRefresh } from "@/components/live-refresh";
 import { EmptyState, LinkButton, SectionHeading } from "@/components/ui";
 import { areaOfPickup, proximityRank } from "@/lib/campus";
+import { daysAgoIso } from "@/lib/format";
 import { requireProfile } from "@/lib/session";
 import { CATEGORIES } from "@/lib/types";
-import { getViewMode } from "@/lib/view-mode";
-import { CategoryFilter } from "./category-filter";
+import { BrowseFilters, type BrowseParams } from "./filters";
 
 export const metadata = { title: "Browse — Passdown" };
 
@@ -21,8 +21,16 @@ export default async function BrowsePage({
 }: PageProps<"/browse">) {
   const { profile, supabase } = await requireProfile();
   const params = await searchParams;
-  const category = typeof params.category === "string" ? params.category : null;
-  const viewMode = await getViewMode();
+  const str = (v: unknown) => (typeof v === "string" ? v : undefined);
+  const current: BrowseParams = {
+    category: str(params.category),
+    sort: str(params.sort),
+    listed: str(params.listed),
+    price: str(params.price),
+    condition: str(params.condition),
+  };
+  const category = current.category ?? null;
+  const sort = current.sort ?? "close";
 
   let query = supabase
     .from("items")
@@ -30,12 +38,7 @@ export default async function BrowsePage({
     .eq("status", "available")
     .gte("available_until", new Date().toISOString().slice(0, 10))
     .neq("owner_id", profile.id)
-    .order("created_at", { ascending: false })
     .limit(PAGE_SIZE);
-
-  // Real view means real listings only. Sample stock is removed outright, not
-  // greyed out — see the Demo/Real switch in the header.
-  if (viewMode === "user") query = query.eq("is_demo", false);
 
   if (
     category &&
@@ -44,13 +47,42 @@ export default async function BrowsePage({
     query = query.eq("category", category);
   }
 
+  // Day-wise: when it went up, not when it comes down.
+  if (current.listed === "today")
+    query = query.gte("created_at", daysAgoIso(1));
+  if (current.listed === "week") query = query.gte("created_at", daysAgoIso(7));
+  if (current.listed === "month")
+    query = query.gte("created_at", daysAgoIso(30));
+
+  if (current.price === "free") query = query.eq("is_free", true);
+  if (current.price === "paid") query = query.eq("is_free", false);
+
+  if (current.condition === "like_new")
+    query = query.in("condition", ["new", "like_new"]);
+  if (current.condition === "good")
+    query = query.in("condition", ["new", "like_new", "good"]);
+
+  // "Leaving soon" is the one people actually act on — the stuff about to drop
+  // off the board.
+  if (sort === "soon")
+    query = query.order("available_until", { ascending: true });
+  else query = query.order("created_at", { ascending: false });
+
   const { data } = await query;
 
-  const items = (data ?? []).sort(
-    (a, b) =>
-      proximityRank(profile.campus_area, areaOfPickup(a.pickup_location)) -
-      proximityRank(profile.campus_area, areaOfPickup(b.pickup_location)),
-  );
+  // Proximity can't be an ORDER BY: walk time is computed from the campus map
+  // in src/lib/campus.ts, not stored. Small page, so sorting here is fine.
+  const items =
+    sort === "close"
+      ? (data ?? []).sort(
+          (a, b) =>
+            proximityRank(
+              profile.campus_area,
+              areaOfPickup(a.pickup_location),
+            ) -
+            proximityRank(profile.campus_area, areaOfPickup(b.pickup_location)),
+        )
+      : (data ?? []);
 
   return (
     <div className="space-y-5 pd-in">
@@ -66,7 +98,7 @@ export default async function BrowsePage({
         </p>
       </div>
 
-      <CategoryFilter categories={[...CATEGORIES]} active={category} />
+      <BrowseFilters categories={[...CATEGORIES]} current={current} />
 
       {items.length === 0 ? (
         <>
@@ -86,7 +118,13 @@ export default async function BrowsePage({
         <>
           <SectionHeading
             title={`${items.length} available`}
-            hint="Sorted by how far you have to walk."
+            hint={
+              sort === "close"
+                ? "Sorted by how far you have to walk."
+                : sort === "new"
+                  ? "Most recently listed first."
+                  : "The ones about to drop off the board first."
+            }
           />
           {/*
             A single column is right on a phone and wasteful on a laptop. The

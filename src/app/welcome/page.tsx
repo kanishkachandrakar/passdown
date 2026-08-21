@@ -23,8 +23,10 @@ export default async function WelcomePage() {
 
         <WelcomeForm
           areas={CAMPUS_AREAS}
+          userId={profile.id}
           defaultName={profile.name}
           defaultArea={profile.campus_area}
+          defaultAvatar={profile.avatar_url}
         />
       </div>
     </main>
