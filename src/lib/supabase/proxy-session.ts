@@ -11,6 +11,9 @@ const isPublic = (pathname: string) =>
   PUBLIC_PATHS.includes(pathname) ||
   // The email link lands here with no session yet — that is the whole point.
   pathname.startsWith("/auth/callback") ||
+  // Read on the verify screen, before a session exists. The route itself is
+  // local-only — see app/api/dev/latest-code/route.ts.
+  pathname.startsWith("/api/dev/") ||
   pathname.startsWith("/api/maintenance");
 
 /**

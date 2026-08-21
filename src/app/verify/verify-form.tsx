@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { Button, Field, Input, Notice } from "@/components/ui";
 import { checkInstitutionalEmail } from "@/lib/institution";
@@ -26,9 +26,10 @@ export function VerifyForm({
   const [error, setError] = useState<string | null>(
     linkFailed
       ? "That sign-in link didn't work — links only open in the browser that asked for them, and only once. Enter your email and use the six-digit code instead."
-      : null
+      : null,
   );
   const [busy, setBusy] = useState(false);
+  const [localCode, setLocalCode] = useState<string | null>(null);
 
   async function sendCode(event: FormEvent) {
     event.preventDefault();
@@ -63,6 +64,7 @@ export function VerifyForm({
 
     setEmail(check.email);
     setStep("code");
+    setLocalCode(null);
   }
 
   async function verifyCode(event: FormEvent) {
@@ -82,7 +84,7 @@ export function VerifyForm({
       setError(
         verifyError.message.toLowerCase().includes("expired")
           ? "That code has expired. Send a new one."
-          : "That code isn't right. Check the six digits and try again."
+          : "That code isn't right. Check the six digits and try again.",
       );
       return;
     }
@@ -158,7 +160,12 @@ export function VerifyForm({
         <span className="break-all text-ink">{email}</span>.
       </p>
 
-      <LocalInboxHint />
+      <LocalInboxHint
+        email={email}
+        code={localCode}
+        onCode={setLocalCode}
+        onUse={setCode}
+      />
 
       <form onSubmit={verifyCode} className="mt-7 space-y-4">
         <Field label="Six-digit code" htmlFor="code">
@@ -194,8 +201,49 @@ export function VerifyForm({
  * conclude sign-in is broken. A deployed build pointed at a hosted project
  * renders nothing here.
  */
-function LocalInboxHint() {
+function LocalInboxHint({
+  email,
+  code,
+  onCode,
+  onUse,
+}: {
+  email: string;
+  code: string | null;
+  onCode: (code: string | null) => void;
+  onUse: (code: string) => void;
+}) {
   const inbox = localInboxUrl();
+
+  // Poll the local mail catcher briefly — the email lands a moment after the
+  // request returns. Gives up quietly; the code can always be typed by hand.
+  useEffect(() => {
+    if (!inbox || !email || code) return;
+    let cancelled = false;
+    let tries = 0;
+
+    const look = async () => {
+      tries += 1;
+      try {
+        const r = await fetch(
+          `/api/dev/latest-code?email=${encodeURIComponent(email)}`,
+        );
+        const data = await r.json();
+        if (!cancelled && data.code) {
+          onCode(data.code);
+          return;
+        }
+      } catch {
+        // ignore — this is a convenience, not a dependency
+      }
+      if (!cancelled && tries < 10) setTimeout(look, 700);
+    };
+
+    look();
+    return () => {
+      cancelled = true;
+    };
+  }, [inbox, email, code, onCode]);
+
   if (!inbox) return null;
 
   return (
@@ -203,18 +251,42 @@ function LocalInboxHint() {
       <p className="text-sm font-medium text-warn">
         Running locally — that email never left this machine.
       </p>
-      <p className="mt-1 text-sm leading-relaxed text-warn">
-        The local Supabase stack captures mail instead of sending it. Your code
-        is waiting at{" "}
-        <a
-          href={inbox}
-          target="_blank"
-          rel="noreferrer"
-          className="font-medium underline underline-offset-2"
-        >
-          {inbox.replace(/^https?:\/\//, "")}
-        </a>
-        . Any address works here — it doesn&rsquo;t have to be one you own.
+
+      {code ? (
+        <>
+          <p className="mt-1 text-sm text-warn">
+            For demo purposes, here is your code:
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="tabular rounded-lg border border-warn/25 bg-surface px-3 py-1.5 text-2xl font-semibold tracking-[0.25em] text-ink">
+              {code}
+            </span>
+            <button
+              type="button"
+              onClick={() => onUse(code)}
+              className="rounded-lg border border-warn/25 bg-surface px-3 py-2 text-sm font-medium text-warn hover:bg-warn/10"
+            >
+              Use it
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className="mt-1 text-sm leading-relaxed text-warn">
+          Fetching your code from the local mail catcher… or read it yourself at{" "}
+          <a
+            href={inbox}
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium underline underline-offset-2"
+          >
+            {inbox.replace(/^https?:\/\//, "")}
+          </a>
+          .
+        </p>
+      )}
+
+      <p className="mt-2 text-[12px] text-warn/80">
+        Any address works here — it doesn&rsquo;t have to be one you own.
       </p>
     </div>
   );
