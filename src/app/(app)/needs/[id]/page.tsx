@@ -4,10 +4,15 @@ import { notFound } from "next/navigation";
 import { ItemCard } from "@/components/item-card";
 import { LiveRefresh } from "@/components/live-refresh";
 import { SubmitButton } from "@/components/submit-button";
-import { Card, Chip, EmptyState, LinkButton } from "@/components/ui";
+import { Card, Chip, EmptyState, LinkButton, Notice } from "@/components/ui";
 import { cancelNeed } from "@/lib/actions/needs";
 import { areaOfPickup, proximityRank } from "@/lib/campus";
-import { formatDate, formatPrice, NEED_STATUS_LABEL, plural } from "@/lib/format";
+import {
+  formatDate,
+  formatPrice,
+  NEED_STATUS_LABEL,
+  plural,
+} from "@/lib/format";
 import { requireProfile } from "@/lib/session";
 import type { Item, Match } from "@/lib/types";
 
@@ -19,8 +24,12 @@ type MatchWithItem = Match & { items: Item | null };
  * The match screen. Every card shows why it matched and how far the walk is,
  * and the list is ordered by walk time — closest first, always.
  */
-export default async function NeedPage({ params }: PageProps<"/needs/[id]">) {
+export default async function NeedPage({
+  params,
+  searchParams,
+}: PageProps<"/needs/[id]">) {
   const { id } = await params;
+  const fresh = (await searchParams).fresh === "1";
   const { profile, supabase } = await requireProfile();
 
   const { data: need } = await supabase
@@ -62,19 +71,26 @@ export default async function NeedPage({ params }: PageProps<"/needs/[id]">) {
     : [{ data: [] }, { data: [] }];
 
   const handoffByItem = new Map((myHandoffs ?? []).map((h) => [h.item_id, h]));
-  const reservationByItem = new Map((myReservations ?? []).map((r) => [r.item_id, r]));
+  const reservationByItem = new Map(
+    (myReservations ?? []).map((r) => [r.item_id, r]),
+  );
 
   const yours = allMatches.filter(
-    (m) => handoffByItem.has(m.item_id) || reservationByItem.has(m.item_id)
+    (m) => handoffByItem.has(m.item_id) || reservationByItem.has(m.item_id),
   );
 
   const matches = allMatches
     .filter((m) => m.items?.status === "available")
     .sort(
       (a, b) =>
-        proximityRank(profile.campus_area, areaOfPickup(a.items?.pickup_location)) -
-          proximityRank(profile.campus_area, areaOfPickup(b.items?.pickup_location)) ||
-        b.match_score - a.match_score
+        proximityRank(
+          profile.campus_area,
+          areaOfPickup(a.items?.pickup_location),
+        ) -
+          proximityRank(
+            profile.campus_area,
+            areaOfPickup(b.items?.pickup_location),
+          ) || b.match_score - a.match_score,
     );
 
   const limit = need.free_only
@@ -86,6 +102,18 @@ export default async function NeedPage({ params }: PageProps<"/needs/[id]">) {
   return (
     <div className="mx-auto max-w-lg space-y-6 pd-in">
       <LiveRefresh intervalMs={5000} />
+
+      {/*
+        Posted a need and it matched something already on the board — this is
+        the answer to the question they just asked, so say so plainly.
+      */}
+      {fresh && matches.length > 0 ? (
+        <Notice tone="accent">
+          Already on campus: {matches.length}{" "}
+          {matches.length === 1 ? "student has" : "students have"} one of these
+          listed right now.
+        </Notice>
+      ) : null}
 
       <div>
         <Link href="/home" className="text-sm text-muted hover:text-ink">
@@ -176,7 +204,11 @@ function MatchCard({
 
   return (
     <Card className="space-y-3 border-accent-line p-3">
-      <ItemCard item={match.items} viewerArea={viewerArea} href={`/items/${match.item_id}`} />
+      <ItemCard
+        item={match.items}
+        viewerArea={viewerArea}
+        href={`/items/${match.item_id}`}
+      />
 
       {reasons.length > 0 ? (
         <ul className="space-y-1 border-t border-line pt-3">

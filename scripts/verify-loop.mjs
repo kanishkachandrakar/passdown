@@ -16,7 +16,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-import { matchItemToNeeds } from "../src/lib/matching.ts";
+import { matchItemToNeeds, matchNeedToItems } from "../src/lib/matching.ts";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -301,6 +301,87 @@ async function main() {
     anaMatches?.[0]?.items?.name === "Mini fridge"
   );
 
+  step("3a. Matching works in both directions");
+
+  // The item-first case is step 2/3 above. This is the reverse: supply already
+  // on the board when the need is posted, which is the commoner order — the
+  // fridge is listed in June, the student who wants it arrives in August.
+  const { data: earlyItem } = await bo.client
+    .from("items")
+    .insert({
+      owner_id: bo.id,
+      name: "Bookshelf",
+      category: "Furniture",
+      condition: "good",
+      is_free: true,
+      price: 0,
+      pickup_location: "block-b-lobby",
+      available_until: dayOffset(25),
+    })
+    .select()
+    .single();
+
+  const { data: laterNeed } = await ana.client
+    .from("needs")
+    .insert({
+      user_id: ana.id,
+      item_name: "Bookshelf",
+      category: "Furniture",
+      free_only: true,
+      needed_by: dayOffset(12),
+    })
+    .select()
+    .single();
+
+  const needFirst = matchNeedToItems(
+    {
+      id: laterNeed.id,
+      user_id: ana.id,
+      item_name: laterNeed.item_name,
+      category: laterNeed.category,
+      free_only: laterNeed.free_only,
+      max_price: laterNeed.max_price,
+      needed_by: laterNeed.needed_by,
+      preferred_condition: laterNeed.preferred_condition,
+      campus_area: "block-a",
+    },
+    [{ ...earlyItem, price: Number(earlyItem.price) }],
+    () => "block-b"
+  );
+
+  check(
+    "a need posted against stock already listed finds it",
+    needFirst.length === 1,
+    `${needFirst.length} matches`
+  );
+  check(
+    "and explains itself the same way",
+    needFirst[0]?.reasons.includes("Exactly what you asked for"),
+    JSON.stringify(needFirst[0]?.reasons)
+  );
+  check(
+    "scoring is symmetric — same pair, same score either way round",
+    needFirst[0]?.match_score ===
+      matchItemToNeeds(
+        { ...earlyItem, price: Number(earlyItem.price) },
+        [
+          {
+            id: laterNeed.id,
+            user_id: ana.id,
+            item_name: laterNeed.item_name,
+            category: laterNeed.category,
+            free_only: laterNeed.free_only,
+            max_price: laterNeed.max_price,
+            needed_by: laterNeed.needed_by,
+            preferred_condition: laterNeed.preferred_condition,
+            campus_area: "block-a",
+          },
+        ],
+        "block-b"
+      )[0]?.match_score,
+    `${needFirst[0]?.match_score}`
+  );
+
   step("3b. Matching says no when it should");
 
   const lampAgainstFridgeNeed = matchItemToNeeds(
@@ -579,6 +660,7 @@ async function main() {
     .from("needs")
     .select("status")
     .eq("user_id", holder.id)
+    .eq("item_name", "Mini fridge")
     .single();
   check("the need it satisfied is now fulfilled", holderNeed.status === "fulfilled");
 

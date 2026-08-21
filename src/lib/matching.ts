@@ -174,6 +174,29 @@ export function matchItemToNeeds(
     .sort((a, b) => b.match_score - a.match_score);
 }
 
+/**
+ * The other direction: score one new need against everything already on the
+ * board. Best-first.
+ *
+ * Both directions matter and for a long time only one existed. Supply usually
+ * arrives before demand — the fridge is listed in June, the student who wants
+ * it arrives in August — so a need posted against existing stock finding
+ * nothing was the more common failure of the two.
+ *
+ * `areaOfItem` resolves an item's pickup point to a campus area; it's passed
+ * in so this file stays free of any dependency on the campus map.
+ */
+export function matchNeedToItems(
+  need: Need,
+  items: Item[],
+  areaOfItem?: (item: Item) => string | null
+): MatchResult[] {
+  return items
+    .map((item) => scoreMatch(item, need, areaOfItem?.(item) ?? null))
+    .filter((m): m is MatchResult => m !== null)
+    .sort((a, b) => b.match_score - a.match_score);
+}
+
 /** For the "N students already need this" line shown right after release. */
 export function countWaitingStudents(item: Item, needs: Need[]): number {
   return matchItemToNeeds(item, needs).length;

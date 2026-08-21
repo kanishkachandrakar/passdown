@@ -104,7 +104,7 @@ Optionally run `supabase/seed.sql` for the demand list on the home screen. Anyth
 
 | Command | What it proves |
 |---|---|
-| `npm run verify` | 67 checks on the database: RLS isolation, matching, the concurrent-claim race, expiry, self-healing, handoff completion, message isolation, blocking, housekeeping |
+| `npm run verify` | 70 checks on the database: RLS isolation, matching, the concurrent-claim race, expiry, self-healing, handoff completion, message isolation, blocking, housekeeping |
 | `npm run verify:ui` | 65 checks on the rendered screens: proximity on every card, match reasons, the Demo/Real switch actually removing sample data, the item flipping to unavailable in another student's tab |
 | `npm run build` / `npm run lint` | types and lint |
 

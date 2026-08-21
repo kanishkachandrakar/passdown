@@ -92,6 +92,17 @@ code remain how a handover is arranged.
 
 Plain scoring function, no ML. See `src/lib/matching.ts`.
 
+It runs in **both directions**, which matters more than it sounds:
+
+- a released item is scored against every open need (`matchNewItem`)
+- a newly posted need is scored against everything already on the board
+  (`matchNewNeed`)
+
+Supply usually arrives before demand — the fridge is listed in June, the
+student who wants it arrives in August — so the second direction is the
+commoner one. The same `scoreMatch` drives both, so a given pair scores
+identically whichever way round it is evaluated.
+
 **Hard filters (must pass):**
 - item not owned by the needer
 - item status is `available`
