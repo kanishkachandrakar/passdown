@@ -25,20 +25,21 @@ function createAdminClient() {
 /**
  * The sample campus, in one place.
  *
- * Both `npm run seed:demo` and the "Add sample listings" button on an empty
- * Browse call into here, so the two can't drift apart.
+ * Both `npm run seed:demo` and the automatic first-sign-in seeding call into
+ * here, so the two can't drift apart.
  *
- * Everything created is flagged `is_demo`: labelled **Sample** in the UI and
- * removed outright by the Demo / Real switch. The rows go in through the same
- * tables real listings use, so they claim, lock and hand off identically.
+ * Rows are flagged `is_demo` so they can be found and removed again, but the
+ * interface no longer says so anywhere — the owner discloses that this is a
+ * demo outside the app. The rows go in through the same tables real listings
+ * use, so they claim, lock and hand off identically.
  */
 
 const PASSWORD = "passdown-demo-seed-8823";
 
 export const DEMO_STUDENTS = [
-  { handle: "demo.priya", name: "Priya (sample)", area: "block-a" },
-  { handle: "demo.sam", name: "Sam (sample)", area: "block-c" },
-  { handle: "demo.wei", name: "Wei (sample)", area: "library" },
+  { handle: "demo.priya", name: "Priya", area: "block-a" },
+  { handle: "demo.sam", name: "Sam", area: "block-c" },
+  { handle: "demo.wei", name: "Wei", area: "library" },
 ];
 
 /** Twelve things students actually leave behind at the end of a year. */

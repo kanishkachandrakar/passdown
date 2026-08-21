@@ -15,7 +15,7 @@ export function AppHeader({
 }: {
   profile: Profile;
   viewMode: ViewMode;
-  /** Hidden when there is no sample data at all — nothing to switch between. */
+  /** Hidden when there are no demo figures at all — nothing to switch between. */
   showViewSwitch: boolean;
   unread: number;
 }) {
@@ -57,8 +57,8 @@ export function AppHeader({
 
       {showViewSwitch && viewMode === "demo" ? (
         <p className="border-t border-warn/20 bg-warn-soft px-4 py-1.5 text-center text-[11px] font-medium text-warn">
-          Demo view — the campus demand figures below are sample data, not real
-          usage. Switch to Real to hide them.
+          Demo view — the campus demand figures on Home are illustrative, not
+          measured usage. Switch to Real to hide them.
         </p>
       ) : null}
     </header>

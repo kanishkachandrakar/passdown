@@ -295,7 +295,7 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
             <SectionHeading
               title="Students near you need"
               action={<DemoBadge />}
-              hint="Sample demand for the demo campus, not live usage."
+              hint="Figures for the demo campus, not measured usage."
             />
             <Card className="divide-y divide-line py-0">
               {demandResult.data.map((row) => (

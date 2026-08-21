@@ -98,14 +98,6 @@ export default async function ItemPage({ params }: PageProps<"/items/[id]">) {
         </div>
       </div>
 
-      {item.is_demo ? (
-        <Notice tone="warn">
-          Sample listing, seeded so Browse isn&rsquo;t empty on a fresh install.
-          It behaves exactly like a real one — you can claim it and the lock
-          works — but nobody is actually waiting to hand it over.
-        </Notice>
-      ) : null}
-
       <Card className="space-y-2.5">
         <Row
           label="Distance"
@@ -129,7 +121,11 @@ export default async function ItemPage({ params }: PageProps<"/items/[id]">) {
                 {owner?.name ?? "A student"} · Verified ✓ ·{" "}
                 {owner?.successful_handoffs ?? 0} completed
               </span>
-              <Avatar name={owner?.name ?? "?"} url={owner?.avatar_url} size="sm" />
+              <Avatar
+                name={owner?.name ?? "?"}
+                url={owner?.avatar_url}
+                size="sm"
+              />
             </Link>
           </div>
         )}

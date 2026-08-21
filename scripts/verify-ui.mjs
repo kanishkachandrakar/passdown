@@ -303,9 +303,9 @@ async function main() {
     visible(browseDemo.body).includes("Sample kettle")
   );
   check(
-    "it carries no Sample tag",
-    !/\bSample\b(?!\s+kettle)/.test(visible(browseDemo.body)),
-    visible(browseDemo.body).match(/.{0,30}Sample.{0,20}/)?.[0]
+    "the word 'sample' appears nowhere on the page",
+    !/\bsamples?\b/i.test(visible(browseDemo.body).replace(/Sample kettle/g, "")),
+    visible(browseDemo.body).match(/.{0,30}ample.{0,20}/)?.[0]
   );
 
   const browseReal = visible(

@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 
 import { ConfirmClaimForm } from "@/components/confirm-claim-form";
 import { Countdown } from "@/components/countdown";
+import { ItemThumb } from "@/components/item-thumb";
+import { MessageButton } from "@/components/message-button";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, LinkButton, Notice } from "@/components/ui";
 import { releaseReservation } from "@/lib/actions/claims";
@@ -20,7 +22,9 @@ export default async function ReservationPage({
 
   const { data: reservation } = await supabase
     .from("reservations")
-    .select("*, items(*)")
+    .select(
+      "*, items(*, owner:profiles!items_owner_id_fkey(id, name, avatar_url))",
+    )
     .eq("id", id)
     .eq("claimant_id", profile.id)
     .maybeSingle();
@@ -28,6 +32,11 @@ export default async function ReservationPage({
   if (!reservation || !reservation.items) notFound();
 
   const item = reservation.items;
+  const owner = item.owner as {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+  } | null;
   const expired =
     reservation.status === "expired" ||
     (reservation.status === "active" && hasLapsed(reservation.expires_at));
@@ -83,7 +92,10 @@ export default async function ReservationPage({
         </h1>
         <p className="mt-1 text-[15px] text-muted">
           {formatPrice(item.is_free, item.price)} ·{" "}
-          {proximityLabel(profile.campus_area, areaOfPickup(item.pickup_location))}
+          {proximityLabel(
+            profile.campus_area,
+            areaOfPickup(item.pickup_location),
+          )}
         </p>
       </div>
 
@@ -101,6 +113,25 @@ export default async function ReservationPage({
         </div>
       ) : (
         <>
+          {/*
+            Ten minutes is exactly when you want another look at the photo, or
+            to ask whether it's the black one. Without these two the screen was
+            a dead end with a clock on it.
+          */}
+          <Link
+            href={`/items/${item.id}`}
+            className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 shadow-card transition hover:-translate-y-0.5 hover:border-accent-line hover:shadow-lift"
+          >
+            <ItemThumb item={item} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium text-ink">{item.name}</p>
+              <p className="mt-0.5 text-[13px] text-muted">
+                See the photo, condition and description
+              </p>
+            </div>
+            <span className="shrink-0 text-accent">→</span>
+          </Link>
+
           <Card className="space-y-2">
             <p className="text-[13px] text-faint">Where you&rsquo;ll meet</p>
             <p className="text-[15px] text-ink">
@@ -114,9 +145,22 @@ export default async function ReservationPage({
 
           <ConfirmClaimForm reservationId={reservation.id} />
 
+          {owner ? (
+            <MessageButton
+              otherId={owner.id}
+              itemId={item.id}
+              label={`Message ${owner.name.split(" ")[0]}`}
+            />
+          ) : null}
+
           <form action={releaseReservation}>
             <input type="hidden" name="reservation_id" value={reservation.id} />
-            <SubmitButton variant="ghost" size="sm" full pendingLabel="Releasing…">
+            <SubmitButton
+              variant="ghost"
+              size="sm"
+              full
+              pendingLabel="Releasing…"
+            >
               Changed my mind — give it back
             </SubmitButton>
           </form>

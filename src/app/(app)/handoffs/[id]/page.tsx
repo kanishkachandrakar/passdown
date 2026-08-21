@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 
 import { CancelHandoffForm } from "@/components/cancel-handoff-form";
 import { ConfirmHandoffForm } from "@/components/confirm-handoff-form";
+import { ItemThumb } from "@/components/item-thumb";
+import { MessageButton } from "@/components/message-button";
 import { LiveRefresh } from "@/components/live-refresh";
 import { Card, Chip, LinkButton, Notice } from "@/components/ui";
 import { areaOfPickup, pickupLabel, proximityLabel } from "@/lib/campus";
@@ -20,7 +22,7 @@ export default async function HandoffPage({
   const { data: handoff } = await supabase
     .from("handoffs")
     .select(
-      "*, items(*), giver:profiles!handoffs_giver_id_fkey(name), receiver:profiles!handoffs_receiver_id_fkey(name)",
+      "*, items(*), giver:profiles!handoffs_giver_id_fkey(id, name), receiver:profiles!handoffs_receiver_id_fkey(id, name)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -29,11 +31,11 @@ export default async function HandoffPage({
 
   const item = handoff.items;
   const isGiver = handoff.giver_id === profile.id;
-  const otherName =
-    (isGiver
-      ? (handoff.receiver as { name: string } | null)?.name
-      : (handoff.giver as { name: string } | null)?.name) ??
-    "The other student";
+  const otherPerson = (isGiver ? handoff.receiver : handoff.giver) as {
+    id: string;
+    name: string;
+  } | null;
+  const otherName = otherPerson?.name ?? "The other student";
 
   const youConfirmed = isGiver
     ? handoff.giver_confirmed
@@ -99,6 +101,18 @@ export default async function HandoffPage({
         </Card>
       )}
 
+      <Link
+        href={`/items/${item.id}`}
+        className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 shadow-card transition hover:-translate-y-0.5 hover:border-accent-line hover:shadow-lift"
+      >
+        <ItemThumb item={item} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium text-ink">{item.name}</p>
+          <p className="mt-0.5 text-[13px] text-muted">See the listing again</p>
+        </div>
+        <span className="shrink-0 text-accent">→</span>
+      </Link>
+
       <Card className="space-y-2.5">
         <Row label="Where" value={pickupLabel(item.pickup_location)} />
         <Row
@@ -134,6 +148,14 @@ export default async function HandoffPage({
           </Chip>
         </div>
       )}
+
+      {!done && !cancelled && otherPerson ? (
+        <MessageButton
+          otherId={otherPerson.id}
+          itemId={item.id}
+          label={`Message ${otherName.split(" ")[0]}`}
+        />
+      ) : null}
 
       {done || cancelled ? (
         <LinkButton
