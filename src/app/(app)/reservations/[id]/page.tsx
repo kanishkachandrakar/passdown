@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ConfirmClaimForm } from "@/components/confirm-claim-form";
@@ -67,6 +68,15 @@ export default async function ReservationPage({
 
   return (
     <div className="mx-auto max-w-lg space-y-5 pd-in">
+      {/*
+        Leaving here doesn't drop the hold — the reservation stands until it's
+        confirmed, given back, or the ten minutes run out. Say so, or the only
+        obvious way off this screen looks like abandoning the item.
+      */}
+      <Link href="/home" className="text-sm text-muted hover:text-ink">
+        ← Home
+      </Link>
+
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-ink">
           {item.name}

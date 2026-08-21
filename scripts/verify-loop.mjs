@@ -750,13 +750,16 @@ async function main() {
     `${missedBefore.missed_pickups} -> ${missedAfter.missed_pickups}`
   );
 
-  const { error: outsiderError } = await cy.client.rpc("cancel_handoff", {
+  // `other` is whoever lost the race further up, so they are the one student
+  // here guaranteed not to be part of this handoff. Naming cy directly would
+  // pass or fail depending on who won, which is not decided in advance.
+  const { error: outsiderError } = await other.client.rpc("cancel_handoff", {
     p_handoff_id: fanHandoff.id,
   });
   check(
     "somebody who isn't part of it cannot cancel",
-    Boolean(outsiderError),
-    outsiderError?.message
+    outsiderError?.message?.includes("not_a_participant"),
+    outsiderError?.message ?? "no error raised"
   );
 
   // and a completed one is final

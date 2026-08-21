@@ -90,6 +90,12 @@ body {
   background-image: linear-gradient(160deg, #fdf2e2 0%, #fef8ef 70%, #fffdfa 100%);
 }
 
+/* The ten-minute hold. Red because it is the one thing on the page with a
+   deadline attached — miss it and the item goes back to everyone else. */
+.wash-danger {
+  background-image: linear-gradient(160deg, #fbe9e8 0%, #fdf3f2 65%, #fffbfb 100%);
+}
+
 @keyframes pd-in {
   from {
     opacity: 0;

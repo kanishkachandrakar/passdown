@@ -194,8 +194,21 @@ function Glyph({
   );
 }
 
-/** Square thumbnail for list and grid cards. */
-export function ItemThumb({ item, className }: { item: Item; className?: string }) {
+/**
+ * Square thumbnail for list and grid cards.
+ *
+ * `tone` picks the placeholder's colours rather than letting a caller pass
+ * overriding classes: Tailwind resolves conflicts by stylesheet order, not by
+ * the order classes appear in the attribute, so "border-accent-line
+ * border-danger/20" is a coin flip.
+ */
+export function ItemThumb({
+  item,
+  tone = "accent",
+}: {
+  item: Item;
+  tone?: "accent" | "danger";
+}) {
   if (item.photo_url) {
     return (
       // Photos live in a Supabase storage bucket on a host that isn't known at
@@ -205,8 +218,8 @@ export function ItemThumb({ item, className }: { item: Item; className?: string 
         src={item.photo_url}
         alt=""
         className={cx(
-          "h-16 w-16 shrink-0 rounded-xl border border-line object-cover",
-          className
+          "h-16 w-16 shrink-0 rounded-xl border object-cover",
+          tone === "danger" ? "border-danger/25" : "border-line"
         )}
       />
     );
@@ -215,11 +228,17 @@ export function ItemThumb({ item, className }: { item: Item; className?: string 
   return (
     <div
       className={cx(
-        "flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-accent-line bg-accent-soft",
-        className
+        "flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border",
+        tone === "danger"
+          ? "border-danger/25 bg-danger-soft"
+          : "border-accent-line bg-accent-soft"
       )}
     >
-      <Glyph name={item.name} category={item.category} className="h-7 w-7 text-accent" />
+      <Glyph
+        name={item.name}
+        category={item.category}
+        className={cx("h-7 w-7", tone === "danger" ? "text-danger" : "text-accent")}
+      />
     </div>
   );
 }

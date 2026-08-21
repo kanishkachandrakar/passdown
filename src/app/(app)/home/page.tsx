@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ItemCard } from "@/components/item-card";
+import { ItemThumb } from "@/components/item-thumb";
 import { LiveRefresh } from "@/components/live-refresh";
 import { NeedRow } from "@/components/need-row";
 import { Remaining } from "@/components/remaining";
@@ -52,7 +53,7 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
         .maybeSingle(),
       supabase
         .from("handoffs")
-        .select("*, items(name)")
+        .select("*, items(*)")
         .eq("status", "scheduled")
         .or(`giver_id.eq.${profile.id},receiver_id.eq.${profile.id}`)
         .order("created_at", { ascending: false })
@@ -125,23 +126,24 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
       {reservation?.items ? (
         <Link
           href={`/reservations/${reservation.id}`}
-          className="block rounded-2xl border border-warn/25 wash-warn p-4 shadow-card"
+          className="block rounded-2xl border-2 border-danger/40 wash-danger p-4 shadow-lift ring-4 ring-danger/10 transition hover:ring-danger/20"
         >
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="pd-pulse text-[13px] font-semibold uppercase tracking-wide text-warn">
+          <div className="flex items-center gap-3">
+            <ItemThumb item={reservation.items} tone="danger" />
+            <div className="min-w-0 flex-1">
+              <p className="pd-pulse text-[13px] font-semibold uppercase tracking-wide text-danger">
                 ● You&rsquo;re holding this
               </p>
-              <p className="mt-1 truncate font-medium text-ink">
+              <p className="mt-1 truncate text-lg font-semibold text-ink">
                 {reservation.items.name}
               </p>
             </div>
-            <span className="shrink-0 text-2xl font-semibold text-warn">
+            <span className="tabular shrink-0 text-3xl font-semibold text-danger">
               <Remaining expiresAt={reservation.expires_at} />
             </span>
           </div>
-          <p className="mt-2 text-sm text-warn">
-            Confirm before the timer runs out or it goes back to everyone else.
+          <p className="mt-2 text-sm font-medium text-danger">
+            Confirm before the timer runs out or it goes back to everyone else →
           </p>
         </Link>
       ) : null}
@@ -150,16 +152,21 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
         <Link
           key={handoff.id}
           href={`/handoffs/${handoff.id}`}
-          className="block rounded-2xl border border-accent-line wash-soft p-4 shadow-card"
+          className="block rounded-2xl border-2 border-accent-line wash-soft p-4 shadow-lift ring-4 ring-accent/10 transition hover:ring-accent/20"
         >
-          <p className="text-[13px] font-semibold uppercase tracking-wide text-accent-strong">
-            Handoff arranged
-          </p>
-          <p className="mt-1 font-medium text-ink">
-            {(handoff.items as { name: string } | null)?.name ?? "Item"}
-          </p>
-          <p className="mt-1 text-sm text-accent-strong">
-            Tap for the pickup spot and your 4-digit code.
+          <div className="flex items-center gap-3">
+            {handoff.items ? <ItemThumb item={handoff.items as Item} /> : null}
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-semibold uppercase tracking-wide text-accent-strong">
+                ✓ Handoff arranged
+              </p>
+              <p className="mt-1 truncate text-lg font-semibold text-ink">
+                {(handoff.items as Item | null)?.name ?? "Item"}
+              </p>
+            </div>
+          </div>
+          <p className="mt-2 text-sm font-medium text-accent-strong">
+            Tap for the pickup spot and your 4-digit code →
           </p>
         </Link>
       ))}
@@ -177,7 +184,6 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
           />
           <BigAction
             href="/release"
-            tone="solid"
             title="I'm done with something"
             body="Sixty seconds to release it. You'll see how many students are already waiting."
           />
