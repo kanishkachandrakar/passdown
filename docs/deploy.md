@@ -223,6 +223,34 @@ time is a real number.
 Then deliberately break it once: claim something and let the ten minutes lapse.
 The item must return to available and your profile must show 1 missed pickup.
 
+## Demo sign-in — and turning it off
+
+A judging deployment holds nothing but sample data, and asking somebody to
+own an inbox to look round is a poor first minute. Two env vars change how
+sign-in works:
+
+```
+DEMO_OPEN_SIGNIN=true
+NEXT_PUBLIC_DEMO_OPEN_SIGNIN=true
+```
+
+With these set, no sign-in email is ever sent. The code is minted server-side
+by `generateLink` and shown on the verify screen, and the screen says so. Two
+consequences worth understanding:
+
+- **The hourly email limit stops applying.** Nothing is sent, so nothing is
+  rate limited. Any number of people can sign in.
+- **It is an authentication bypass.** Anyone who knows an address can read that
+  address's code and sign in as them.
+
+The second is fine while the only accounts are demo accounts. It is not fine
+the moment a real student has one.
+
+**Before any real pilot, remove both variables and redeploy.** Sign-in reverts
+to emailed codes with no code change. `DEMO_ACCOUNT_EMAIL` on its own is the
+middle option: one designated address whose code is shown, everyone else
+emailed as normal.
+
 ## Step 9 — Keeping it alive for two months
 
 The app already looks after its own data: `pg_cron` sweeps every minute,

@@ -49,8 +49,9 @@ export function VerifyForm({
       the project's hourly email limit — which is exactly what stops somebody
       evaluating this from getting in.
     */
+    const openSignin = process.env.NEXT_PUBLIC_DEMO_OPEN_SIGNIN === "true";
     const demoEmail = process.env.NEXT_PUBLIC_DEMO_ACCOUNT_EMAIL?.toLowerCase();
-    if (demoEmail && check.email === demoEmail) {
+    if (openSignin || (demoEmail && check.email === demoEmail)) {
       setBusy(false);
       setEmail(check.email);
       setStep("code");
@@ -230,6 +231,23 @@ export function VerifyForm({
  */
 function DemoAccountPrompt({ onUse }: { onUse: (email: string) => void }) {
   const demoEmail = process.env.NEXT_PUBLIC_DEMO_ACCOUNT_EMAIL;
+  const openSignin = process.env.NEXT_PUBLIC_DEMO_OPEN_SIGNIN === "true";
+
+  // With open sign-in there is nothing to suggest — any address works and the
+  // code appears on the next screen either way.
+  if (openSignin) {
+    return (
+      <div className="mt-6 rounded-xl border border-warn/25 bg-warn-soft px-3.5 py-3">
+        <p className="text-sm font-medium text-warn">Demo deployment</p>
+        <p className="mt-1 text-sm leading-relaxed text-warn">
+          Use any university email — real or made up. Your sign-in code is shown
+          on the next screen instead of being emailed, so you don&rsquo;t need
+          access to the inbox.
+        </p>
+      </div>
+    );
+  }
+
   if (!demoEmail) return null;
 
   return (
@@ -316,7 +334,7 @@ function CodeHelper({
       <p className="text-sm font-medium text-warn">
         {inbox
           ? "Running locally — that email never left this machine."
-          : "Demo account — no inbox needed."}
+          : "Demo — your code is shown here, not emailed."}
       </p>
 
       {code ? (
@@ -339,7 +357,7 @@ function CodeHelper({
         </>
       ) : !inbox ? (
         <p className="mt-1 text-sm leading-relaxed text-warn">
-          Fetching the code for this demo account…
+          Fetching your code…
         </p>
       ) : (
         <p className="mt-1 text-sm leading-relaxed text-warn">
@@ -359,7 +377,7 @@ function CodeHelper({
       <p className="mt-2 text-[12px] text-warn/80">
         {inbox
           ? "Any address works here — it doesn't have to be one you own."
-          : "Shown for this demo account only. Everyone else gets a code by email."}
+          : "This is a demo deployment, so codes are shown rather than emailed."}
       </p>
     </div>
   );

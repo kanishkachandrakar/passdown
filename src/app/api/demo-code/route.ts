@@ -1,45 +1,63 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { checkInstitutionalEmail } from "@/lib/institution";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 /**
- * The sign-in code for ONE designated demo account, shown on screen.
+ * Mints a sign-in code and returns it, so the verify screen can show it.
  *
- * Judges shouldn't need an inbox to look round the app. But a screen that
- * prints whatever code you ask for is not a convenience, it is an
- * authentication bypass: anyone could type a real student's address, read
- * their code and sign in as them.
+ * ────────────────────────────────────────────────────────────────────────
+ *  THIS IS AN AUTHENTICATION BYPASS. It exists so that a demo can be
+ *  evaluated without anybody owning an inbox.
  *
- * So this answers for exactly one address — whatever DEMO_ACCOUNT_EMAIL is set
- * to — and 404s for every other. Signing in as the demo account is expected;
- * no other account is reachable this way.
+ *  While DEMO_OPEN_SIGNIN is on, anyone who knows an address can read that
+ *  address's code and sign in as them. That is acceptable on a deployment
+ *  holding nothing but sample data, and unacceptable the moment a real
+ *  student's account exists.
  *
- * Unset the env var and this endpoint stops existing.
+ *  Turn it off by removing DEMO_OPEN_SIGNIN (and NEXT_PUBLIC_DEMO_OPEN_SIGNIN)
+ *  from the environment. Sign-in reverts to emailed codes with no code change.
+ * ────────────────────────────────────────────────────────────────────────
+ *
+ * DEMO_ACCOUNT_EMAIL still works on its own, and is the narrower option:
+ * one designated address rather than all of them.
  */
 export async function GET(request: NextRequest) {
+  const openSignin = process.env.DEMO_OPEN_SIGNIN === "true";
   const demoEmail = process.env.DEMO_ACCOUNT_EMAIL?.trim().toLowerCase();
-  if (!demoEmail) {
+
+  if (!openSignin && !demoEmail) {
     return NextResponse.json({ error: "Not available." }, { status: 404 });
   }
 
   const asked = request.nextUrl.searchParams.get("email")?.trim().toLowerCase();
-  if (!asked || asked !== demoEmail) {
-    // Deliberately the same response as "not configured": no hinting that a
-    // demo account exists under some other address.
+  if (!asked) {
+    return NextResponse.json({ error: "Not available." }, { status: 404 });
+  }
+
+  // Even wide open, the institutional rule still applies — otherwise this
+  // becomes a way to create accounts at arbitrary domains.
+  const check = checkInstitutionalEmail(asked);
+  if (!check.ok) {
+    return NextResponse.json({ error: check.reason }, { status: 400 });
+  }
+
+  const allowed = openSignin || asked === demoEmail;
+  if (!allowed) {
     return NextResponse.json({ error: "Not available." }, { status: 404 });
   }
 
   try {
     const admin = createAdminClient();
 
-    // generateLink mints a fresh one-time code without sending an email, which
-    // is the only way to know the code on a deployment where mail goes to a
-    // real inbox we cannot read.
+    // generateLink mints a one-time code WITHOUT sending mail. That is what
+    // makes this immune to the project's hourly email limit — no message is
+    // ever sent, so there is nothing to rate limit.
     const { data, error } = await admin.auth.admin.generateLink({
       type: "magiclink",
-      email: demoEmail,
+      email: check.email,
     });
 
     if (error) {
