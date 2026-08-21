@@ -25,7 +25,7 @@ export function VerifyForm({
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(
     linkFailed
-      ? "That sign-in link didn't work — links only open in the browser that asked for them, and only once. Enter your email and use the six-digit code instead."
+      ? "That sign-in link didn't work — links only open in the browser that asked for them, and only once. Enter your email and use the code instead."
       : null,
   );
   const [busy, setBusy] = useState(false);
@@ -114,7 +114,7 @@ export function VerifyForm({
       setError(
         verifyError.message.toLowerCase().includes("expired")
           ? "That code has expired. Send a new one."
-          : "That code isn't right. Check the six digits and try again.",
+          : "That code isn't right. Check the digits and try again.",
       );
       return;
     }
@@ -134,7 +134,7 @@ export function VerifyForm({
           Verify you&rsquo;re a student
         </h1>
         <p className="mt-2 text-[15px] leading-relaxed text-muted">
-          We send a six-digit code to your university email. That email is also
+          We send a sign-in code to your university email. That email is also
           how we know which campus you&rsquo;re on.
         </p>
 
@@ -188,7 +188,7 @@ export function VerifyForm({
         {minted ? "Here's your code" : "Check your email"}
       </h1>
       <p className="mt-2 text-[15px] leading-relaxed text-muted">
-        {minted ? "Signing in as " : "We sent a six-digit code to "}
+        {minted ? "Signing in as " : "We sent a sign-in code to "}
         <span className="break-all text-ink">{email}</span>.
       </p>
 
@@ -201,7 +201,7 @@ export function VerifyForm({
       />
 
       <form onSubmit={verifyCode} className="mt-7 space-y-4">
-        <Field label="Six-digit code" htmlFor="code">
+        <Field label="Sign-in code" htmlFor="code">
           <Input
             id="code"
             name="code"
@@ -209,11 +209,17 @@ export function VerifyForm({
             autoComplete="one-time-code"
             autoFocus
             required
-            maxLength={6}
+            /*
+              Not six. The project this points at decides how long its codes
+              are — the hosted one mints eight digits — and a hard cap of six
+              silently truncates what the student types into something that
+              can never verify.
+            */
+            maxLength={10}
             placeholder="000000"
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            className="tabular text-center text-2xl tracking-[0.4em]"
+            className="tabular text-center text-2xl tracking-[0.3em]"
           />
         </Field>
 
