@@ -162,6 +162,63 @@ create table if not exists handoffs (
 create index if not exists handoffs_giver_idx    on handoffs(giver_id);
 create index if not exists handoffs_receiver_idx on handoffs(receiver_id);
 
+-- ---------------------------------------------------------------- messaging
+--
+-- Added after v1 shipped, overriding the original "do not build chat" rule.
+-- Kept deliberately small: a thread between exactly two students, usually
+-- about one item. No group chats, no attachments, no read receipts beyond
+-- "you have unread messages", no presence.
+--
+-- The pickup code and fixed handover point still do the coordinating. This is
+-- for "does it still have the shelf?" — the question that otherwise sends
+-- people off the platform to swap phone numbers.
+
+create table if not exists conversations (
+  id              uuid primary key default gen_random_uuid(),
+  item_id         uuid references items(id) on delete set null,
+  -- stored in a canonical order so a pair can't open two threads about the
+  -- same item by starting from opposite ends
+  user_a          uuid not null references profiles(id) on delete cascade,
+  user_b          uuid not null references profiles(id) on delete cascade,
+  created_at      timestamptz not null default now(),
+  last_message_at timestamptz not null default now(),
+  constraint conversation_pair_ordered check (user_a < user_b),
+  constraint conversation_not_self     check (user_a <> user_b)
+);
+
+-- NULLS NOT DISTINCT so the one "no particular item" thread per pair is unique
+-- too, rather than a new one every time somebody taps Message.
+create unique index if not exists conversations_pair_item
+  on conversations (user_a, user_b, item_id) nulls not distinct;
+
+create index if not exists conversations_a_idx on conversations(user_a, last_message_at desc);
+create index if not exists conversations_b_idx on conversations(user_b, last_message_at desc);
+
+create table if not exists messages (
+  id              uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references conversations(id) on delete cascade,
+  sender_id       uuid not null references profiles(id) on delete cascade,
+  body            text not null,
+  created_at      timestamptz not null default now(),
+  read_at         timestamptz,
+  constraint message_body_length check (char_length(btrim(body)) between 1 and 2000)
+);
+
+create index if not exists messages_thread_idx on messages(conversation_id, created_at);
+create index if not exists messages_unread_idx on messages(conversation_id) where read_at is null;
+
+-- The minimum a message feature owes its users. Blocking is mutual in effect:
+-- neither side can open a thread or send once either has blocked the other.
+create table if not exists blocks (
+  blocker_id uuid not null references profiles(id) on delete cascade,
+  blocked_id uuid not null references profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (blocker_id, blocked_id),
+  constraint block_not_self check (blocker_id <> blocked_id)
+);
+
+create index if not exists blocks_blocked_idx on blocks(blocked_id);
+
 -- ---------------------------------------------------------------- demo data flag
 
 -- counts shown in "Students near you need" when running on seeded data.
@@ -465,6 +522,119 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------- messaging
+--
+-- Same principle as claim_item: the rules live here, not in the UI. Who may
+-- talk to whom is not something a client should be trusted to decide.
+
+create or replace function is_blocked_between(p_one uuid, p_two uuid)
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from blocks
+    where (blocker_id = p_one and blocked_id = p_two)
+       or (blocker_id = p_two and blocked_id = p_one)
+  )
+$$;
+
+-- Open (or reuse) the thread between the caller and one other student.
+create or replace function start_conversation(p_other uuid, p_item uuid default null)
+returns conversations
+language plpgsql security definer set search_path = public as $$
+declare
+  v_me   uuid := auth.uid();
+  v_a    uuid;
+  v_b    uuid;
+  v_conv conversations;
+begin
+  if v_me is null            then raise exception 'not_signed_in';        end if;
+  if p_other = v_me          then raise exception 'cannot_message_self';  end if;
+
+  -- campus-scoped, like everything else in this app
+  if (select institution from profiles where id = p_other) is distinct from my_institution() then
+    raise exception 'not_same_campus';
+  end if;
+
+  if is_blocked_between(v_me, p_other) then raise exception 'blocked'; end if;
+
+  if v_me < p_other then v_a := v_me; v_b := p_other;
+  else                   v_a := p_other; v_b := v_me; end if;
+
+  insert into conversations (user_a, user_b, item_id)
+  values (v_a, v_b, p_item)
+  on conflict (user_a, user_b, item_id)
+    do update set last_message_at = conversations.last_message_at
+  returning * into v_conv;
+
+  return v_conv;
+end;
+$$;
+
+create or replace function send_message(p_conversation_id uuid, p_body text)
+returns messages
+language plpgsql security definer set search_path = public as $$
+declare
+  v_me   uuid := auth.uid();
+  v_conv conversations;
+  v_msg  messages;
+  v_other uuid;
+begin
+  select * into v_conv from conversations where id = p_conversation_id;
+
+  if v_conv.id is null then raise exception 'conversation_not_found'; end if;
+  if v_me <> v_conv.user_a and v_me <> v_conv.user_b then
+    raise exception 'not_a_participant';
+  end if;
+  if btrim(coalesce(p_body,'')) = '' then raise exception 'empty_message'; end if;
+
+  v_other := case when v_me = v_conv.user_a then v_conv.user_b else v_conv.user_a end;
+  if is_blocked_between(v_me, v_other) then raise exception 'blocked'; end if;
+
+  insert into messages (conversation_id, sender_id, body)
+  values (p_conversation_id, v_me, btrim(p_body))
+  returning * into v_msg;
+
+  update conversations set last_message_at = now() where id = p_conversation_id;
+
+  return v_msg;
+end;
+$$;
+
+-- Everything the other person sent me in this thread is now read.
+create or replace function mark_conversation_read(p_conversation_id uuid)
+returns int
+language plpgsql security definer set search_path = public as $$
+declare v_count int;
+begin
+  update messages set read_at = now()
+  where conversation_id = p_conversation_id
+    and sender_id <> auth.uid()
+    and read_at is null
+    and exists (
+      select 1 from conversations c
+      where c.id = p_conversation_id
+        and auth.uid() in (c.user_a, c.user_b)
+    );
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+create or replace function set_block(p_other uuid, p_blocked boolean)
+returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if p_other = auth.uid() then raise exception 'cannot_block_self'; end if;
+
+  if p_blocked then
+    insert into blocks (blocker_id, blocked_id) values (auth.uid(), p_other)
+    on conflict do nothing;
+  else
+    delete from blocks where blocker_id = auth.uid() and blocked_id = p_other;
+  end if;
+end;
+$$;
+
 -- ================================================================ RLS
 
 alter table profiles     enable row level security;
@@ -474,6 +644,9 @@ alter table matches      enable row level security;
 alter table reservations enable row level security;
 alter table handoffs     enable row level security;
 alter table demo_demand  enable row level security;
+alter table conversations enable row level security;
+alter table messages      enable row level security;
+alter table blocks        enable row level security;
 
 drop policy if exists profiles_read       on profiles;
 drop policy if exists profiles_update     on profiles;
@@ -486,6 +659,9 @@ drop policy if exists matches_read        on matches;
 drop policy if exists reservations_read   on reservations;
 drop policy if exists handoffs_read       on handoffs;
 drop policy if exists demo_demand_read    on demo_demand;
+drop policy if exists conversations_read  on conversations;
+drop policy if exists messages_read       on messages;
+drop policy if exists blocks_own          on blocks;
 
 -- profiles: see people at your institution, edit only yourself
 create policy profiles_read on profiles for select
@@ -530,6 +706,21 @@ create policy handoffs_read on handoffs for select
 -- demo demand: readable by anyone signed in
 create policy demo_demand_read on demo_demand for select using (auth.uid() is not null);
 
+-- conversations and messages: the two participants, nobody else. Writes go
+-- exclusively through send_message/start_conversation, which is why there is
+-- no insert policy here.
+create policy conversations_read on conversations for select
+  using (auth.uid() in (user_a, user_b));
+
+create policy messages_read on messages for select
+  using (exists (
+    select 1 from conversations c
+    where c.id = messages.conversation_id and auth.uid() in (c.user_a, c.user_b)
+  ));
+
+-- blocks: your own list, and you manage it through set_block
+create policy blocks_own on blocks for select using (blocker_id = auth.uid());
+
 -- ================================================================ grants
 --
 -- Supabase no longer auto-exposes new tables to the API roles, so without
@@ -541,13 +732,17 @@ grant usage on schema public to anon, authenticated, service_role;
 grant select, insert, update, delete on
   profiles, items, needs, matches, reservations, handoffs
   to authenticated, service_role;
+grant select on conversations, messages, blocks to authenticated, service_role;
+grant insert, update, delete on conversations, messages, blocks to service_role;
 grant select on demo_demand to authenticated, service_role;
 grant insert, update, delete on demo_demand to service_role;
 
 grant execute on function
   my_institution(), claim_item(uuid), confirm_claim(uuid), confirm_handoff(uuid),
   cancel_handoff(uuid), cancel_reservation(uuid), expire_reservations(),
-  expire_stale_items(), expire_stale_needs(), run_maintenance()
+  expire_stale_items(), expire_stale_needs(), run_maintenance(),
+  is_blocked_between(uuid, uuid), start_conversation(uuid, uuid),
+  send_message(uuid, text), mark_conversation_read(uuid), set_block(uuid, boolean)
   to authenticated, service_role;
 
 -- ================================================================ scheduled sweep

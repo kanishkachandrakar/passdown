@@ -20,9 +20,18 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   // On a real deployment nobody runs seed.sql, so there is no sample data and
   // the switch would offer a choice between nothing and nothing.
-  const { count } = await supabase
-    .from("demo_demand")
-    .select("item_name", { count: "exact", head: true });
+  const [{ count }, { count: unread }] = await Promise.all([
+    supabase
+      .from("demo_demand")
+      .select("item_name", { count: "exact", head: true }),
+    // Messages someone else sent me that I haven't opened. RLS already limits
+    // this to my own threads.
+    supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .is("read_at", null)
+      .neq("sender_id", profile.id),
+  ]);
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
@@ -30,6 +39,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         profile={profile}
         viewMode={viewMode}
         showViewSwitch={(count ?? 0) > 0}
+        unread={unread ?? 0}
       />
       {/*
         Mobile-first, then given room. The bottom nav only exists on phones, so
@@ -38,7 +48,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <main className="mx-auto w-full max-w-md flex-1 px-4 pb-28 pt-4 sm:max-w-lg md:pb-12 lg:max-w-5xl lg:pt-8">
         {children}
       </main>
-      <AppNav />
+      <AppNav unread={unread ?? 0} />
     </div>
   );
 }

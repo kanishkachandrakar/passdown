@@ -73,6 +73,21 @@ Pickup location, time window, 4-digit confirmation code, two confirm buttons.
 ### 5.9 Profile
 Name, institution, Verified Student ✓, completed handoffs, missed pickups, your open needs and active items. No bios, no followers.
 
+### 5.10 Another student's page — `/students/[id]`
+The same trust record for someone else, plus everything else they currently
+have on the board. Campus-scoped like everything: a student at another
+institution does not exist to you. No bios, no follows, no ratings.
+
+### 5.11 Messages
+One thread per pair of students, usually attached to one item. Inbox with last
+line and unread count; thread with a composer. Blocking is mutual in effect and
+undoable, and is not announced to the other person.
+
+Added after v1, overriding §11's original exclusion. Kept small on purpose: no
+groups, no attachments, no presence, no read receipts beyond "you have unread
+messages". Contact details are never shared — the pickup point and the 4-digit
+code remain how a handover is arranged.
+
 ## 6. Matching
 
 Plain scoring function, no ML. See `src/lib/matching.ts`.
@@ -135,7 +150,12 @@ Free or fixed price only. No bidding, offers, or negotiation. Payment happens of
 
 ## 11. Out of scope for v1
 
-Delivery, storage, escrow, messaging, bundles, benefits/meal swipes, cross-campus, admin tools, analytics, AI features.
+Delivery, storage, escrow, bundles, benefits/meal swipes, cross-campus, admin
+tools, analytics, AI features.
+
+Messaging was on this list and was later built (§5.11) — a deliberate change of
+mind, not an oversight. What stays excluded is everything that would turn a
+thread into a feed: groups, attachments, follows, ratings.
 
 ## 12. Judging alignment
 

@@ -41,7 +41,18 @@ These two proofs are the demo. Don't let them get buried.
 
 ## Do not build
 
-chat/messaging · delivery/shipping/storage · payments or escrow · bidding/offers/negotiation · star ratings · followers or social feed · admin dashboard · analytics · bundles · life-stage suggestions · "benefits"/meal-swipe screens · AI chatbot
+delivery/shipping/storage · payments or escrow · bidding/offers/negotiation · star ratings · followers or social feed · admin dashboard · analytics · bundles · life-stage suggestions · "benefits"/meal-swipe screens · AI chatbot
+
+**Overridden Aug 21:** messaging *was* on this list and has now been built,
+deliberately, on the owner's call. Don't remove it as scope creep. It is kept
+small on purpose — two people per thread, usually about one item, no groups, no
+attachments, no presence. The pickup point and 4-digit code still do the
+arranging; this exists for "is it still going?", the question that otherwise
+pushes people off the platform to swap phone numbers.
+
+Student profiles (`/students/[id]`) were added at the same time: trust record
+plus their other listings. The "no followers or social feed" line still stands —
+no bios, no follows, no ratings.
 
 ## Stack
 
@@ -68,9 +79,8 @@ Update this line as you go so future sessions know where things stand.
 
 > **Status:** the full loop is built and verified end to end. Every screen in
 > the spec exists; matching, the 10-minute lock, handoff codes and both-sides
-> confirm all work against real Postgres. `npm run verify` (49 database checks,
-> including 10 rounds of 12 simultaneous claims) and `npm run verify:ui` (43
-> screen checks) both pass, as do `npm run build` and `npm run lint`.
+> confirm all work against real Postgres. `npm run verify` (67 database checks,
+> including 10 rounds of 12 simultaneous claims) and `npm run verify:ui` (61 screen checks) both pass, as do `npm run build` and `npm run lint`.
 >
 > Not done: deploy to Vercel with a hosted Supabase project, and the Aug 18–19
 > items — real pilot, demo video, write-up. Nothing is blocked on code.

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { ClaimForm } from "@/components/claim-form";
 import { ItemHero } from "@/components/item-thumb";
+import { MessageButton } from "@/components/message-button";
 import { LiveRefresh } from "@/components/live-refresh";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, Chip, LinkButton, Notice } from "@/components/ui";
@@ -25,7 +26,9 @@ export default async function ItemPage({ params }: PageProps<"/items/[id]">) {
 
   const { data: item } = await supabase
     .from("items")
-    .select("*, owner:profiles!items_owner_id_fkey(id, name, campus_area, successful_handoffs)")
+    .select(
+      "*, owner:profiles!items_owner_id_fkey(id, name, campus_area, successful_handoffs)",
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -111,19 +114,35 @@ export default async function ItemPage({ params }: PageProps<"/items/[id]">) {
           label="Available until"
           value={`${formatDate(item.available_until)} · ${availabilityLabel(item.available_until)}`}
         />
-        <Row
-          label={isMine ? "Released by" : "Student"}
-          value={
-            isMine
-              ? "You"
-              : `${owner?.name ?? "A student"} · Verified ✓ · ${owner?.successful_handoffs ?? 0} completed`
-          }
-        />
+        {isMine ? (
+          <Row label="Released by" value="You" />
+        ) : (
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="shrink-0 text-[13px] text-faint">Student</span>
+            <Link
+              href={`/students/${owner?.id}`}
+              className="text-right text-[15px] text-ink underline decoration-line underline-offset-2 hover:text-accent"
+            >
+              {owner?.name ?? "A student"} · Verified ✓ ·{" "}
+              {owner?.successful_handoffs ?? 0} completed
+            </Link>
+          </div>
+        )}
       </Card>
+
+      {!isMine && owner ? (
+        <MessageButton
+          otherId={owner.id}
+          itemId={item.id}
+          label={`Message ${owner.name.split(" ")[0]}`}
+        />
+      ) : null}
 
       {item.description ? (
         <Card>
-          <p className="text-[15px] leading-relaxed text-muted">{item.description}</p>
+          <p className="text-[15px] leading-relaxed text-muted">
+            {item.description}
+          </p>
         </Card>
       ) : null}
 
@@ -165,8 +184,8 @@ export default async function ItemPage({ params }: PageProps<"/items/[id]">) {
 
       {!isMine && item.status === "available" ? (
         <p className="px-1 text-center text-[13px] leading-relaxed text-faint">
-          Claiming holds it for ten minutes and takes it off everyone else&rsquo;s
-          screen. Nobody else can claim it while you decide.
+          Claiming holds it for ten minutes and takes it off everyone
+          else&rsquo;s screen. Nobody else can claim it while you decide.
         </p>
       ) : null}
     </div>
@@ -203,7 +222,12 @@ function OwnerActions({ status, itemId }: { status: string; itemId: string }) {
     return (
       <form action={withdrawItem}>
         <input type="hidden" name="item_id" value={itemId} />
-        <SubmitButton variant="secondary" size="lg" full pendingLabel="Removing…">
+        <SubmitButton
+          variant="secondary"
+          size="lg"
+          full
+          pendingLabel="Removing…"
+        >
           Take it off the board
         </SubmitButton>
       </form>
@@ -213,7 +237,9 @@ function OwnerActions({ status, itemId }: { status: string; itemId: string }) {
   if (status === "expired") {
     return (
       <div className="space-y-2">
-        <Notice>This lapsed. Relisting puts it back for another 30 days.</Notice>
+        <Notice>
+          This lapsed. Relisting puts it back for another 30 days.
+        </Notice>
         <form action={relistItem}>
           <input type="hidden" name="item_id" value={itemId} />
           <SubmitButton size="lg" full pendingLabel="Relisting…">
@@ -228,5 +254,7 @@ function OwnerActions({ status, itemId }: { status: string; itemId: string }) {
     return <Notice tone="warn">Someone is holding this right now.</Notice>;
   }
 
-  return <Notice>{ITEM_STATUS_LABEL[status as never] ?? "No action needed."}</Notice>;
+  return (
+    <Notice>{ITEM_STATUS_LABEL[status as never] ?? "No action needed."}</Notice>
+  );
 }

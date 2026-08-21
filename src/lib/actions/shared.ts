@@ -25,7 +25,14 @@ const RPC_MESSAGES: Record<string, string> = {
   handoff_not_found: "That handoff no longer exists.",
   handoff_already_completed:
     "This handoff is already done — you both confirmed it.",
-  not_a_participant: "You're not part of this handoff.",
+  not_a_participant: "You're not part of this — it's between two other students.",
+  not_signed_in: "You need to be signed in.",
+  cannot_message_self: "That's you.",
+  not_same_campus: "You can only message students at your own institution.",
+  blocked: "You can't message this student.",
+  conversation_not_found: "That conversation no longer exists.",
+  empty_message: "Write something first.",
+  cannot_block_self: "You can't block yourself.",
 };
 
 export function readableRpcError(message: string): string {

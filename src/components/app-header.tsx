@@ -10,11 +10,13 @@ export function AppHeader({
   profile,
   viewMode,
   showViewSwitch,
+  unread,
 }: {
   profile: Profile;
   viewMode: ViewMode;
   /** Hidden when there is no sample data at all — nothing to switch between. */
   showViewSwitch: boolean;
+  unread: number;
 }) {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface/80 shadow-card backdrop-blur-md">
@@ -29,7 +31,7 @@ export function AppHeader({
             </p>
           </Link>
 
-          <HeaderNav />
+          <HeaderNav unread={unread} />
         </div>
 
         <div className="flex shrink-0 items-center gap-2">

@@ -772,6 +772,193 @@ async function main() {
     lateCancel?.message
   );
 
+  step("8c. Messaging: only the two people in it, and blocking works");
+
+  const { data: convRaw, error: convError } = await ana.client.rpc(
+    "start_conversation",
+    { p_other: bo.id, p_item: fan.id }
+  );
+  const conv = Array.isArray(convRaw) ? convRaw[0] : convRaw;
+  check("a student can open a thread with another", Boolean(conv), convError?.message);
+
+  const { data: againRaw } = await ana.client.rpc("start_conversation", {
+    p_other: bo.id,
+    p_item: fan.id,
+  });
+  const again = Array.isArray(againRaw) ? againRaw[0] : againRaw;
+  check(
+    "tapping Message twice reuses the thread rather than forking it",
+    again?.id === conv.id
+  );
+
+  // ...and from the other end, which is what the canonical ordering is for
+  const { data: reverseRaw } = await bo.client.rpc("start_conversation", {
+    p_other: ana.id,
+    p_item: fan.id,
+  });
+  const reverse = Array.isArray(reverseRaw) ? reverseRaw[0] : reverseRaw;
+  check(
+    "starting from the other side lands in the same thread",
+    reverse?.id === conv.id,
+    `${reverse?.id} vs ${conv.id}`
+  );
+
+  const { error: selfError } = await ana.client.rpc("start_conversation", {
+    p_other: ana.id,
+  });
+  check("you cannot message yourself", Boolean(selfError));
+
+  await ana.client.rpc("send_message", {
+    p_conversation_id: conv.id,
+    p_body: "Is the fan still going?",
+  });
+  await bo.client.rpc("send_message", {
+    p_conversation_id: conv.id,
+    p_body: "Yes — Block B lobby any evening.",
+  });
+
+  const { data: anaSees } = await ana.client
+    .from("messages")
+    .select("body")
+    .eq("conversation_id", conv.id);
+  check("both messages are in the thread", anaSees?.length === 2, `${anaSees?.length}`);
+
+  // The one that matters: a third student must not be able to read it.
+  const { data: cySees } = await cy.client
+    .from("messages")
+    .select("id")
+    .eq("conversation_id", conv.id);
+  check(
+    "a third student cannot read someone else's messages",
+    (cySees?.length ?? 0) === 0,
+    `saw ${cySees?.length} messages`
+  );
+
+  const { data: cyConvs } = await cy.client
+    .from("conversations")
+    .select("id")
+    .eq("id", conv.id);
+  check(
+    "...nor even see that the thread exists",
+    (cyConvs?.length ?? 0) === 0
+  );
+
+  const { error: cySendError } = await cy.client.rpc("send_message", {
+    p_conversation_id: conv.id,
+    p_body: "butting in",
+  });
+  check(
+    "...nor post into it",
+    cySendError?.message?.includes("not_a_participant"),
+    cySendError?.message
+  );
+
+  const { error: emptyError } = await ana.client.rpc("send_message", {
+    p_conversation_id: conv.id,
+    p_body: "   ",
+  });
+  check("an empty message is refused", Boolean(emptyError));
+
+  // unread accounting
+  const { data: unreadForAna } = await ana.client
+    .from("messages")
+    .select("id")
+    .eq("conversation_id", conv.id)
+    .is("read_at", null)
+    .neq("sender_id", ana.id);
+  check("Bo's reply shows as unread for Ana", unreadForAna?.length === 1);
+
+  await ana.client.rpc("mark_conversation_read", { p_conversation_id: conv.id });
+  const { data: stillUnread } = await ana.client
+    .from("messages")
+    .select("id")
+    .eq("conversation_id", conv.id)
+    .is("read_at", null)
+    .neq("sender_id", ana.id);
+  check("opening the thread clears it", stillUnread?.length === 0);
+
+  const { data: boUnread } = await bo.client
+    .from("messages")
+    .select("id")
+    .eq("conversation_id", conv.id)
+    .is("read_at", null)
+    .neq("sender_id", bo.id);
+  check(
+    "reading my side does not mark the other person's copy read",
+    boUnread?.length === 1,
+    `${boUnread?.length}`
+  );
+
+  // blocking
+  await ana.client.rpc("set_block", { p_other: bo.id, p_blocked: true });
+
+  const { error: blockedSend } = await bo.client.rpc("send_message", {
+    p_conversation_id: conv.id,
+    p_body: "hello?",
+  });
+  check(
+    "a blocked student cannot send to the person who blocked them",
+    blockedSend?.message?.includes("blocked"),
+    blockedSend?.message
+  );
+
+  const { error: blockerSend } = await ana.client.rpc("send_message", {
+    p_conversation_id: conv.id,
+    p_body: "still blocked",
+  });
+  check(
+    "and blocking cuts both ways, not just one",
+    blockerSend?.message?.includes("blocked"),
+    blockerSend?.message
+  );
+
+  await ana.client.rpc("set_block", { p_other: bo.id, p_blocked: false });
+  const { error: afterUnblock } = await bo.client.rpc("send_message", {
+    p_conversation_id: conv.id,
+    p_body: "back on",
+  });
+  check("unblocking restores it", !afterUnblock, afterUnblock?.message);
+
+  step("8d. Another student's profile is campus-scoped");
+
+  const { data: sameCampusProfile } = await ana.client
+    .from("profiles")
+    .select("id, name, successful_handoffs")
+    .eq("id", bo.id)
+    .maybeSingle();
+  check(
+    "you can see a student at your own institution",
+    Boolean(sameCampusProfile)
+  );
+
+  const outsider = await createStudent({
+    email: `verify.dee@other-college.edu`,
+    name: "Dee",
+    area: "block-d",
+  });
+
+  const { data: crossCampus } = await ana.client
+    .from("profiles")
+    .select("id")
+    .eq("id", outsider.id)
+    .maybeSingle();
+  check(
+    "a student at another institution is invisible",
+    crossCampus === null,
+    JSON.stringify(crossCampus)
+  );
+
+  const { error: crossMessage } = await ana.client.rpc("start_conversation", {
+    p_other: outsider.id,
+  });
+  check(
+    "and cannot be messaged",
+    crossMessage?.message?.includes("not_same_campus"),
+    crossMessage?.message
+  );
+
+  await admin.auth.admin.deleteUser(outsider.id);
+
   /* ------------------------------------------- 9. long-run housekeeping */
 
   step("9. Housekeeping keeps the board honest over months");

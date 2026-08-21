@@ -387,6 +387,80 @@ async function main() {
     (await get(`/reservations/${reservation.id}`, bo)).status === 404
   );
 
+  step("Messaging and the other student's page");
+
+  const studentPage = await get(`/students/${bo.id}`, ana);
+  check("a student's page renders", studentPage.status === 200);
+  check(
+    "it shows their trust record, not a bio",
+    visible(studentPage.body).includes("Verified Student") &&
+      /completed handoff/.test(visible(studentPage.body)) &&
+      /missed pickup/.test(visible(studentPage.body))
+  );
+  check(
+    "and what else they're offering",
+    visible(studentPage.body).includes("Also offering")
+  );
+  check(
+    "with no bio, followers or ratings",
+    !/\b(followers|following|bio|rating|stars)\b/i.test(visible(studentPage.body))
+  );
+  check(
+    "your own page redirects to your profile",
+    (await get(`/students/${ana.id}`, ana)).status === 307
+  );
+
+  const { data: threadRaw } = await ana.client.rpc("start_conversation", {
+    p_other: bo.id,
+    p_item: fridge.id,
+  });
+  const thread = Array.isArray(threadRaw) ? threadRaw[0] : threadRaw;
+  await ana.client.rpc("send_message", {
+    p_conversation_id: thread.id,
+    p_body: "Is the fridge still available?",
+  });
+
+  const inbox = await get("/messages", ana);
+  check("the inbox renders", inbox.status === 200);
+  check(
+    "with the thread and its last line",
+    visible(inbox.body).includes("Bo Adeyemi") &&
+      visible(inbox.body).includes("Is the fridge still available?")
+  );
+
+  const threadPage = await get(`/messages/${thread.id}`, ana);
+  check("the thread renders", threadPage.status === 200);
+  check(
+    "it names the item the conversation is about",
+    visible(threadPage.body).includes("About this item")
+  );
+  check(
+    "and says Passdown never shares contact details",
+    visible(threadPage.body).includes("never shares phone numbers")
+  );
+
+  // Check the badge BEFORE opening the thread as Bo — opening it is what marks
+  // the messages read, so the other order tests nothing.
+  const boInbox = await get("/messages", bo);
+  check(
+    "the recipient sees an unread badge",
+    /1 new/.test(visible(boInbox.body)),
+    visible(boInbox.body).match(/.{0,30}new.{0,10}/)?.[0]
+  );
+
+  check(
+    "the other participant can open it",
+    (await get(`/messages/${thread.id}`, bo)).status === 200
+  );
+  check(
+    "opening it is what clears the unread badge",
+    !/1 new/.test(visible((await get("/messages", bo)).body))
+  );
+  check(
+    "a signed-out visitor is sent to verify, not into the thread",
+    (await get(`/messages/${thread.id}`, { cookie: "" })).status === 307
+  );
+
   step("Confirm, then hand over");
   const { data: handoffData } = await ana.client.rpc("confirm_claim", {
     p_reservation_id: reservation.id,
