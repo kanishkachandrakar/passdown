@@ -125,12 +125,12 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
       {reservation?.items ? (
         <Link
           href={`/reservations/${reservation.id}`}
-          className="block rounded-2xl border border-warn/25 bg-warn-soft p-4"
+          className="block rounded-2xl border border-warn/25 wash-warn p-4 shadow-card"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[13px] font-semibold uppercase tracking-wide text-warn">
-                You&rsquo;re holding this
+              <p className="pd-pulse text-[13px] font-semibold uppercase tracking-wide text-warn">
+                ● You&rsquo;re holding this
               </p>
               <p className="mt-1 truncate font-medium text-ink">
                 {reservation.items.name}
@@ -150,7 +150,7 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
         <Link
           key={handoff.id}
           href={`/handoffs/${handoff.id}`}
-          className="block rounded-2xl border border-accent-line bg-accent-soft p-4"
+          className="block rounded-2xl border border-accent-line wash-soft p-4 shadow-card"
         >
           <p className="text-[13px] font-semibold uppercase tracking-wide text-accent-strong">
             Handoff arranged
@@ -177,6 +177,7 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
           />
           <BigAction
             href="/release"
+            tone="solid"
             title="I'm done with something"
             body="Sixty seconds to release it. You'll see how many students are already waiting."
           />
@@ -319,18 +320,51 @@ function BigAction({
   href,
   title,
   body,
+  tone = "soft",
 }: {
   href: string;
   title: string;
   body: string;
+  tone?: "solid" | "soft";
 }) {
+  const solid = tone === "solid";
+
   return (
     <Link
       href={href}
-      className="block rounded-2xl border border-line bg-surface p-4 transition hover:border-accent"
+      className={
+        "group relative block overflow-hidden rounded-2xl p-4 transition " +
+        (solid
+          ? "wash-accent text-white shadow-glow hover:brightness-110"
+          : "border border-accent-line wash-soft shadow-card hover:-translate-y-0.5 hover:shadow-lift")
+      }
     >
-      <p className="text-[17px] font-semibold text-ink">{title}</p>
-      <p className="mt-1 text-sm leading-relaxed text-muted">{body}</p>
+      <div className="flex items-start justify-between gap-3">
+        <p
+          className={
+            "text-[17px] font-semibold " + (solid ? "text-white" : "text-ink")
+          }
+        >
+          {title}
+        </p>
+        <span
+          className={
+            "shrink-0 text-lg transition group-hover:translate-x-0.5 " +
+            (solid ? "text-white/80" : "text-accent")
+          }
+          aria-hidden="true"
+        >
+          →
+        </span>
+      </div>
+      <p
+        className={
+          "mt-1 text-sm leading-relaxed " +
+          (solid ? "text-white/85" : "text-muted")
+        }
+      >
+        {body}
+      </p>
     </Link>
   );
 }

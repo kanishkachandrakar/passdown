@@ -353,6 +353,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_handoff: {
+        Args: { p_handoff_id: string }
+        Returns: {
+          confirmation_code: string
+          created_at: string
+          giver_confirmed: boolean
+          giver_id: string
+          id: string
+          item_id: string
+          location: string
+          receiver_confirmed: boolean
+          receiver_id: string
+          scheduled_time: string | null
+          status: Database["public"]["Enums"]["handoff_status"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "handoffs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       cancel_reservation: {
         Args: { p_reservation_id: string }
         Returns: undefined

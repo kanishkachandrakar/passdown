@@ -23,6 +23,8 @@ const RPC_MESSAGES: Record<string, string> = {
   reservation_expired:
     "Your ten minutes ran out, so the item went back to available.",
   handoff_not_found: "That handoff no longer exists.",
+  handoff_already_completed:
+    "This handoff is already done — you both confirmed it.",
   not_a_participant: "You're not part of this handoff.",
 };
 

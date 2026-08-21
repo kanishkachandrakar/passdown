@@ -108,6 +108,12 @@ match like that costs more trust than ten missed good ones.
 
 `available → reserved → claimed → completed`, plus `expired`.
 
+Either side can call off an arranged pickup before both have confirmed: the
+handoff goes `cancelled`, the item returns to `available`, and the receiver's
+need reopens. That is deliberately *not* recorded as a missed pickup — missed
+pickups are for holds left to lapse in silence, and saying "I can't make it" is
+the opposite of that.
+
 Never allow two users to believe they hold the same item. Enforced by:
 - the `claim_item` Postgres function (row lock + status check in one transaction)
 - a unique partial index allowing only one `active` reservation per item

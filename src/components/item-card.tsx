@@ -60,7 +60,8 @@ export function ItemCard({
   );
 
   const className =
-    "block rounded-2xl border border-line bg-surface p-3 transition hover:border-faint";
+    "block rounded-2xl border border-line bg-surface p-3 shadow-card transition " +
+    "hover:-translate-y-0.5 hover:border-accent-line hover:shadow-lift";
 
   if (!href) return <div className={className}>{body}</div>;
 

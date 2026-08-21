@@ -656,6 +656,119 @@ async function main() {
     lateError?.message
   );
 
+  step("8b. Either side can call off an arranged pickup");
+
+  const { data: fan } = await bo.client
+    .from("items")
+    .insert({
+      owner_id: bo.id,
+      name: "Desk fan",
+      category: "Dorm",
+      condition: "good",
+      is_free: true,
+      price: 0,
+      pickup_location: "block-b-lobby",
+      available_until: dayOffset(20),
+    })
+    .select()
+    .single();
+
+  const { data: fanNeed } = await holder.client
+    .from("needs")
+    .insert({
+      user_id: holder.id,
+      item_name: "Desk fan",
+      category: "Dorm",
+      free_only: true,
+      needed_by: dayOffset(10),
+    })
+    .select()
+    .single();
+
+  await runMatching(fan.id);
+
+  const { data: fanClaim } = await holder.client.rpc("claim_item", {
+    p_item_id: fan.id,
+  });
+  const fanRes = Array.isArray(fanClaim) ? fanClaim[0] : fanClaim;
+  const { data: fanHandoffData } = await holder.client.rpc("confirm_claim", {
+    p_reservation_id: fanRes.id,
+  });
+  const fanHandoff = Array.isArray(fanHandoffData) ? fanHandoffData[0] : fanHandoffData;
+
+  const { data: missedBefore } = await admin
+    .from("profiles")
+    .select("missed_pickups")
+    .eq("id", holder.id)
+    .single();
+
+  const { error: strangerError } = await bo.client
+    .from("handoffs")
+    .select("id")
+    .eq("id", fanHandoff.id)
+    .maybeSingle();
+  check("the giver can see the handoff they're part of", !strangerError);
+
+  const { error: cancelError } = await bo.client.rpc("cancel_handoff", {
+    p_handoff_id: fanHandoff.id,
+  });
+  check("the giver can cancel it", !cancelError, cancelError?.message);
+
+  const { data: cancelledHandoff } = await admin
+    .from("handoffs")
+    .select("status")
+    .eq("id", fanHandoff.id)
+    .single();
+  check("handoff is marked cancelled", cancelledHandoff.status === "cancelled");
+
+  const { data: freedItem } = await admin
+    .from("items")
+    .select("status")
+    .eq("id", fan.id)
+    .single();
+  check(
+    "the item goes straight back on the board",
+    freedItem.status === "available",
+    freedItem.status
+  );
+
+  const { data: reopened } = await admin
+    .from("needs")
+    .select("status")
+    .eq("id", fanNeed.id)
+    .single();
+  check("the need reopens and keeps looking", reopened.status === "open");
+
+  const { data: missedAfter } = await admin
+    .from("profiles")
+    .select("missed_pickups")
+    .eq("id", holder.id)
+    .single();
+  check(
+    "cancelling is not counted as a missed pickup",
+    missedAfter.missed_pickups === missedBefore.missed_pickups,
+    `${missedBefore.missed_pickups} -> ${missedAfter.missed_pickups}`
+  );
+
+  const { error: outsiderError } = await cy.client.rpc("cancel_handoff", {
+    p_handoff_id: fanHandoff.id,
+  });
+  check(
+    "somebody who isn't part of it cannot cancel",
+    Boolean(outsiderError),
+    outsiderError?.message
+  );
+
+  // and a completed one is final
+  const { error: lateCancel } = await bo.client.rpc("cancel_handoff", {
+    p_handoff_id: handoff.id,
+  });
+  check(
+    "a completed handoff cannot be cancelled after the fact",
+    lateCancel?.message?.includes("already_completed"),
+    lateCancel?.message
+  );
+
   /* ------------------------------------------- 9. long-run housekeeping */
 
   step("9. Housekeeping keeps the board honest over months");

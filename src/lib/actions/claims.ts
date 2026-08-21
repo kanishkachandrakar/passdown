@@ -81,6 +81,30 @@ export async function confirmHandoff(
   return { error: null };
 }
 
+/**
+ * Call off an arranged pickup. Either side can, right up until both have
+ * confirmed. The item goes back on the board and the need reopens.
+ */
+export async function cancelHandoff(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const { supabase } = await requireProfile();
+  const handoffId = String(formData.get("handoff_id") ?? "");
+
+  const { error } = await supabase.rpc("cancel_handoff", {
+    p_handoff_id: handoffId,
+  });
+
+  if (error) return fail(readableRpcError(error.message));
+
+  revalidatePath(`/handoffs/${handoffId}`);
+  revalidatePath("/home");
+  revalidatePath("/browse");
+  revalidatePath("/profile");
+  return { error: null };
+}
+
 /** Give the item back before the ten minutes are up. */
 export async function releaseReservation(formData: FormData) {
   const { supabase } = await requireProfile();

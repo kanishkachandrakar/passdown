@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { CancelHandoffForm } from "@/components/cancel-handoff-form";
 import { ConfirmHandoffForm } from "@/components/confirm-handoff-form";
 import { LiveRefresh } from "@/components/live-refresh";
 import { Card, Chip, LinkButton, Notice } from "@/components/ui";
@@ -10,14 +11,16 @@ import { requireProfile } from "@/lib/session";
 
 export const metadata = { title: "Handoff — Passdown" };
 
-export default async function HandoffPage({ params }: PageProps<"/handoffs/[id]">) {
+export default async function HandoffPage({
+  params,
+}: PageProps<"/handoffs/[id]">) {
   const { id } = await params;
   const { profile, supabase } = await requireProfile();
 
   const { data: handoff } = await supabase
     .from("handoffs")
     .select(
-      "*, items(*), giver:profiles!handoffs_giver_id_fkey(name), receiver:profiles!handoffs_receiver_id_fkey(name)"
+      "*, items(*), giver:profiles!handoffs_giver_id_fkey(name), receiver:profiles!handoffs_receiver_id_fkey(name)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -29,11 +32,17 @@ export default async function HandoffPage({ params }: PageProps<"/handoffs/[id]"
   const otherName =
     (isGiver
       ? (handoff.receiver as { name: string } | null)?.name
-      : (handoff.giver as { name: string } | null)?.name) ?? "The other student";
+      : (handoff.giver as { name: string } | null)?.name) ??
+    "The other student";
 
-  const youConfirmed = isGiver ? handoff.giver_confirmed : handoff.receiver_confirmed;
-  const theyConfirmed = isGiver ? handoff.receiver_confirmed : handoff.giver_confirmed;
+  const youConfirmed = isGiver
+    ? handoff.giver_confirmed
+    : handoff.receiver_confirmed;
+  const theyConfirmed = isGiver
+    ? handoff.receiver_confirmed
+    : handoff.giver_confirmed;
   const done = handoff.status === "completed";
+  const cancelled = handoff.status === "cancelled";
 
   return (
     <div className="mx-auto max-w-lg space-y-5 pd-in">
@@ -45,7 +54,13 @@ export default async function HandoffPage({ params }: PageProps<"/handoffs/[id]"
 
       <div>
         <p className="text-[13px] font-semibold uppercase tracking-[0.18em] text-accent">
-          {done ? "Passed down" : isGiver ? "You're handing this over" : "You're picking this up"}
+          {cancelled
+            ? "Pickup cancelled"
+            : done
+              ? "Passed down"
+              : isGiver
+                ? "You're handing this over"
+                : "You're picking this up"}
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink">
           {item.name}
@@ -55,25 +70,34 @@ export default async function HandoffPage({ params }: PageProps<"/handoffs/[id]"
         </p>
       </div>
 
-      {done ? (
-        <Notice tone="accent">
-          Both of you confirmed. That&rsquo;s one more thing that stayed on campus
-          instead of going in a skip.
+      {cancelled ? (
+        <Notice tone="warn">
+          This pickup was called off. The item is back on the board, and if you
+          still need one your need is open again.
         </Notice>
       ) : null}
 
-      <Card className="text-center">
-        <p className="text-[13px] uppercase tracking-wide text-faint">
-          Confirmation code
-        </p>
-        <p className="tabular mt-1 text-5xl font-semibold tracking-[0.2em] text-ink">
-          {handoff.confirmation_code}
-        </p>
-        <p className="mt-2 text-[13px] leading-relaxed text-muted">
-          Say it out loud when you meet. Same four digits on both screens — that
-          is how you know you&rsquo;ve found the right person.
-        </p>
-      </Card>
+      {done ? (
+        <Notice tone="accent">
+          Both of you confirmed. That&rsquo;s one more thing that stayed on
+          campus instead of going in a skip.
+        </Notice>
+      ) : null}
+
+      {cancelled ? null : (
+        <Card className="wash-soft border-accent-line text-center">
+          <p className="text-[13px] uppercase tracking-wide text-faint">
+            Confirmation code
+          </p>
+          <p className="tabular mt-1 text-5xl font-semibold tracking-[0.2em] text-accent-strong">
+            {handoff.confirmation_code}
+          </p>
+          <p className="mt-2 text-[13px] leading-relaxed text-muted">
+            Say it out loud when you meet. Same four digits on both screens —
+            that is how you know you&rsquo;ve found the right person.
+          </p>
+        </Card>
+      )}
 
       <Card className="space-y-2.5">
         <Row label="Where" value={pickupLabel(item.pickup_location)} />
@@ -81,11 +105,14 @@ export default async function HandoffPage({ params }: PageProps<"/handoffs/[id]"
           label="Distance"
           value={proximityLabel(
             profile.campus_area,
-            areaOfPickup(item.pickup_location)
+            areaOfPickup(item.pickup_location),
           )}
         />
         {!item.is_free ? (
-          <Row label="Payment" value={`${formatPrice(false, item.price)}, in person`} />
+          <Row
+            label="Payment"
+            value={`${formatPrice(false, item.price)}, in person`}
+          />
         ) : null}
 
         <p className="border-t border-line pt-2.5 text-[13px] leading-relaxed text-muted">
@@ -95,25 +122,40 @@ export default async function HandoffPage({ params }: PageProps<"/handoffs/[id]"
         </p>
       </Card>
 
-      <div className="flex gap-2">
-        <Chip tone={youConfirmed ? "accent" : "neutral"}>
-          {youConfirmed ? "You confirmed ✓" : "You haven't confirmed"}
-        </Chip>
-        <Chip tone={theyConfirmed ? "accent" : "neutral"}>
-          {theyConfirmed ? `${otherName} confirmed ✓` : `Waiting on ${otherName}`}
-        </Chip>
-      </div>
+      {cancelled ? null : (
+        <div className="flex gap-2">
+          <Chip tone={youConfirmed ? "accent" : "neutral"}>
+            {youConfirmed ? "You confirmed ✓" : "You haven't confirmed"}
+          </Chip>
+          <Chip tone={theyConfirmed ? "accent" : "neutral"}>
+            {theyConfirmed
+              ? `${otherName} confirmed ✓`
+              : `Waiting on ${otherName}`}
+          </Chip>
+        </div>
+      )}
 
-      {done ? (
-        <LinkButton href="/home" size="lg" full>
-          Back to home
+      {done || cancelled ? (
+        <LinkButton
+          href={cancelled ? `/items/${item.id}` : "/home"}
+          size="lg"
+          full
+        >
+          {cancelled ? "See the item" : "Back to home"}
         </LinkButton>
-      ) : youConfirmed ? (
-        <Notice>
-          You&rsquo;re done. This closes the moment {otherName} confirms too.
-        </Notice>
       ) : (
-        <ConfirmHandoffForm handoffId={handoff.id} isGiver={isGiver} />
+        <div className="space-y-3">
+          {youConfirmed ? (
+            <Notice>
+              You&rsquo;re done. This closes the moment {otherName} confirms
+              too.
+            </Notice>
+          ) : (
+            <ConfirmHandoffForm handoffId={handoff.id} isGiver={isGiver} />
+          )}
+
+          <CancelHandoffForm handoffId={handoff.id} otherName={otherName} />
+        </div>
       )}
     </div>
   );

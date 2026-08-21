@@ -17,7 +17,7 @@ export function AppHeader({
   showViewSwitch: boolean;
 }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-canvas/85 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-line bg-surface/80 shadow-card backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-md items-center justify-between gap-3 px-4 py-3 sm:max-w-lg lg:max-w-5xl">
         <div className="flex min-w-0 items-center gap-6">
           <Link href="/home" className="min-w-0">

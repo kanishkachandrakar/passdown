@@ -4,28 +4,40 @@
   Passdown design tokens.
 
   One accent colour, defined once, right here. Tailwind v4 is CSS-first —
-  there is no tailwind.config.ts to put it in. Everything else is a neutral.
+  there is no tailwind.config.ts to put it in.
+
+  Everything with colour on screen is either this accent, a neutral, or the two
+  status hues (warn for "you're on the clock", danger for "this went wrong").
+  The washes and gradients below are all mixes of the accent — depth without a
+  second brand colour.
 */
 @theme {
   --color-accent: #0a6b4c;
   --color-accent-strong: #085740;
+  --color-accent-deep: #05412f;
   --color-accent-soft: #e6f2ed;
   --color-accent-line: #b9dccc;
+  --color-accent-glow: #cfe9dd;
 
-  --color-canvas: #f6f8f7;
+  --color-canvas: #f4f7f5;
   --color-surface: #ffffff;
-  --color-ink: #121815;
-  --color-muted: #5d6b65;
-  --color-faint: #8a968f;
-  --color-line: #e3e9e6;
+  --color-ink: #101714;
+  --color-muted: #55645d;
+  --color-faint: #83908a;
+  --color-line: #e2e9e5;
 
-  --color-warn: #9a5b06;
-  --color-warn-soft: #fdf3e4;
-  --color-danger: #a02c2c;
+  --color-warn: #8f5406;
+  --color-warn-soft: #fdf2e2;
+  --color-danger: #9c2b2b;
   --color-danger-soft: #fbeceb;
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Soft, close shadows. A card should look lifted, not cut out. */
+  --shadow-card: 0 1px 2px rgb(16 23 20 / 0.04), 0 1px 3px rgb(16 23 20 / 0.03);
+  --shadow-lift: 0 4px 12px rgb(16 23 20 / 0.07), 0 2px 4px rgb(16 23 20 / 0.04);
+  --shadow-glow: 0 6px 20px rgb(10 107 76 / 0.14);
 }
 
 /*
@@ -37,14 +49,45 @@
 }
 
 body {
-  background: var(--color-canvas);
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
+  /*
+    A flat grey page made every card look like a form field. Two very faint
+    accent washes, top-left and right, give the page somewhere to sit.
+  */
+  background-color: var(--color-canvas);
+  background-image:
+    radial-gradient(60rem 40rem at 8% -8%, rgb(10 107 76 / 0.06), transparent 60%),
+    radial-gradient(48rem 34rem at 105% 0%, rgb(10 107 76 / 0.045), transparent 62%);
+  background-attachment: fixed;
 }
 
 /* Numbers that need to line up — countdowns, handoff codes, prices. */
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* The accent wash used on primary surfaces: hero, big actions, the code card. */
+.wash-accent {
+  background-image: linear-gradient(
+    145deg,
+    var(--color-accent) 0%,
+    var(--color-accent-strong) 55%,
+    var(--color-accent-deep) 100%
+  );
+}
+
+.wash-soft {
+  background-image: linear-gradient(
+    160deg,
+    var(--color-accent-soft) 0%,
+    #f2f9f6 60%,
+    var(--color-surface) 100%
+  );
+}
+
+.wash-warn {
+  background-image: linear-gradient(160deg, #fdf2e2 0%, #fef8ef 70%, #fffdfa 100%);
 }
 
 @keyframes pd-in {
@@ -62,8 +105,24 @@ body {
   animation: pd-in 0.28s ease-out both;
 }
 
+/* The ten-minute hold, quietly breathing so it reads as live. */
+@keyframes pd-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+.pd-pulse {
+  animation: pd-pulse 2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .pd-in {
+  .pd-in,
+  .pd-pulse {
     animation: none;
   }
 }

@@ -380,6 +380,54 @@ begin
 end;
 $$;
 
+-- either side calls off an arranged pickup
+--
+-- Without this an item sits in `claimed` for ever the moment one person
+-- changes their mind, which is precisely the dead end the group chat has. The
+-- item goes back on the board and the need reopens so it keeps looking.
+--
+-- Deliberately does NOT count as a missed pickup. Missed pickups are for
+-- people who let a hold lapse in silence; saying "I can't make it" is the
+-- opposite of that and shouldn't carry the same mark.
+create or replace function cancel_handoff(p_handoff_id uuid)
+returns handoffs
+language plpgsql security definer set search_path = public as $$
+declare
+  v_h handoffs;
+begin
+  select * into v_h from handoffs where id = p_handoff_id for update;
+
+  if v_h.id is null then raise exception 'handoff_not_found'; end if;
+  if auth.uid() <> v_h.giver_id and auth.uid() <> v_h.receiver_id then
+    raise exception 'not_a_participant';
+  end if;
+  if v_h.status = 'completed' then raise exception 'handoff_already_completed'; end if;
+  if v_h.status = 'cancelled' then return v_h; end if;
+
+  update handoffs set status = 'cancelled' where id = p_handoff_id;
+
+  update reservations set status = 'cancelled'
+  where item_id = v_h.item_id and status in ('active','confirmed');
+
+  -- back on the board, unless its window has since closed.
+  -- The casts matter: a bare CASE here is text, and the column is item_status.
+  update items
+  set status = case
+                 when available_until < current_date then 'expired'::item_status
+                 else 'available'::item_status
+               end
+  where id = v_h.item_id and status in ('claimed','reserved');
+
+  -- the receiver still needs the thing
+  update needs set status = 'open'
+  where user_id = v_h.receiver_id and status = 'matched'
+    and id in (select need_id from matches where item_id = v_h.item_id);
+
+  select * into v_h from handoffs where id = p_handoff_id;
+  return v_h;
+end;
+$$;
+
 -- both sides confirm at pickup
 create or replace function confirm_handoff(p_handoff_id uuid)
 returns handoffs
@@ -498,8 +546,8 @@ grant insert, update, delete on demo_demand to service_role;
 
 grant execute on function
   my_institution(), claim_item(uuid), confirm_claim(uuid), confirm_handoff(uuid),
-  cancel_reservation(uuid), expire_reservations(), expire_stale_items(),
-  expire_stale_needs(), run_maintenance()
+  cancel_handoff(uuid), cancel_reservation(uuid), expire_reservations(),
+  expire_stale_items(), expire_stale_needs(), run_maintenance()
   to authenticated, service_role;
 
 -- ================================================================ scheduled sweep

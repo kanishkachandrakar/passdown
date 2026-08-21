@@ -13,9 +13,11 @@ const BUTTON_BASE =
   "focus-visible:outline-accent disabled:opacity-50 disabled:pointer-events-none";
 
 const VARIANTS = {
-  primary: "bg-accent text-white hover:bg-accent-strong active:bg-accent-strong",
-  secondary: "bg-surface text-ink border border-line hover:border-faint",
-  soft: "bg-accent-soft text-accent-strong border border-accent-line hover:bg-accent-line/40",
+  primary:
+    "wash-accent text-white shadow-glow hover:brightness-110 active:brightness-95",
+  secondary:
+    "bg-surface text-ink border border-line shadow-card hover:border-accent-line hover:shadow-lift",
+  soft: "bg-accent-soft text-accent-strong border border-accent-line hover:bg-accent-glow",
   ghost: "text-muted hover:text-ink",
   danger: "bg-danger-soft text-danger border border-danger/20 hover:bg-danger/10",
 } as const;
@@ -69,7 +71,10 @@ export function Card({
   return (
     <As
       {...props}
-      className={cx("rounded-2xl border border-line bg-surface p-4", className)}
+      className={cx(
+        "rounded-2xl border border-line bg-surface p-4 shadow-card",
+        className
+      )}
     />
   );
 }
@@ -106,7 +111,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <Card className="border-dashed text-center">
+    <Card className="wash-soft border-dashed text-center">
       <p className="font-medium text-ink">{title}</p>
       <p className="mx-auto mt-1 max-w-xs text-sm text-muted">{body}</p>
       {action ? <div className="mt-4 flex justify-center">{action}</div> : null}

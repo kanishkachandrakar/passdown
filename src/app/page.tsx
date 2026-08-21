@@ -7,16 +7,21 @@ import { LinkButton } from "@/components/ui";
  */
 export default function LandingPage() {
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-5 py-10 sm:max-w-lg sm:py-16">
+    <main className="relative mx-auto flex w-full max-w-md flex-1 flex-col px-5 py-10 sm:max-w-lg sm:py-16">
       <div className="flex flex-1 flex-col justify-center pd-in">
-        <p className="text-[13px] font-semibold uppercase tracking-[0.18em] text-accent">
-          Passdown
-        </p>
+        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-accent-line bg-accent-soft px-3 py-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+          <span className="text-[12px] font-semibold uppercase tracking-[0.16em] text-accent-strong">
+            Passdown
+          </span>
+        </div>
 
-        <h1 className="mt-4 text-[2.5rem] font-semibold leading-[1.05] tracking-tight text-ink sm:text-5xl">
+        <h1 className="mt-5 text-[2.6rem] font-semibold leading-[1.03] tracking-tight text-ink sm:text-[3.25rem]">
           Your campus
           <br />
-          already has one.
+          <span className="bg-gradient-to-br from-accent via-accent-strong to-accent-deep bg-clip-text text-transparent">
+            already has one.
+          </span>
         </h1>
 
         <p className="mt-5 text-[17px] leading-relaxed text-muted">
@@ -56,9 +61,11 @@ export default function LandingPage() {
 
 function Proof({ heading, body }: { heading: string; body: string }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
-      <p className="text-sm font-semibold text-ink">{heading}</p>
-      <p className="mt-1 text-sm leading-relaxed text-muted">{body}</p>
+    <div className="group relative overflow-hidden rounded-2xl border border-line bg-surface p-4 shadow-card transition hover:border-accent-line hover:shadow-lift">
+      {/* a sliver of accent down the edge, so the cards aren't two grey boxes */}
+      <span className="absolute inset-y-0 left-0 w-1 wash-accent opacity-70" />
+      <p className="pl-2 text-sm font-semibold text-ink">{heading}</p>
+      <p className="mt-1 pl-2 text-sm leading-relaxed text-muted">{body}</p>
     </div>
   );
 }
