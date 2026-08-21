@@ -6,7 +6,7 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { Button, Field, Input, Notice } from "@/components/ui";
 import { checkInstitutionalEmail } from "@/lib/institution";
-import { localInboxUrl } from "@/lib/local-dev";
+import { envFlag, localInboxUrl } from "@/lib/local-dev";
 import { createClient } from "@/lib/supabase/client";
 
 type Step = "email" | "code";
@@ -49,7 +49,7 @@ export function VerifyForm({
       the project's hourly email limit — which is exactly what stops somebody
       evaluating this from getting in.
     */
-    const openSignin = process.env.NEXT_PUBLIC_DEMO_OPEN_SIGNIN === "true";
+    const openSignin = envFlag(process.env.NEXT_PUBLIC_DEMO_OPEN_SIGNIN);
     const demoEmail = process.env.NEXT_PUBLIC_DEMO_ACCOUNT_EMAIL?.toLowerCase();
     if (openSignin || (demoEmail && check.email === demoEmail)) {
       setBusy(false);
@@ -231,7 +231,7 @@ export function VerifyForm({
  */
 function DemoAccountPrompt({ onUse }: { onUse: (email: string) => void }) {
   const demoEmail = process.env.NEXT_PUBLIC_DEMO_ACCOUNT_EMAIL;
-  const openSignin = process.env.NEXT_PUBLIC_DEMO_OPEN_SIGNIN === "true";
+  const openSignin = envFlag(process.env.NEXT_PUBLIC_DEMO_OPEN_SIGNIN);
 
   // With open sign-in there is nothing to suggest — any address works and the
   // code appears on the next screen either way.

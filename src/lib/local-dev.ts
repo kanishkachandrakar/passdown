@@ -29,3 +29,14 @@ export function localInboxUrl(): string | null {
     return null;
   }
 }
+
+/**
+ * Env flags are typed by hand into dashboards, so "true", "TRUE", " true " and
+ * "1" all have to mean the same thing. An exact === "true" comparison turns a
+ * stray capital into a feature that silently does not exist.
+ */
+export function envFlag(value: string | undefined): boolean {
+  if (!value) return false;
+  const v = value.trim().toLowerCase();
+  return v === "true" || v === "1" || v === "yes" || v === "on";
+}

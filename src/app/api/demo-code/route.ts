@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { checkInstitutionalEmail } from "@/lib/institution";
+import { envFlag } from "@/lib/local-dev";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -25,11 +26,16 @@ export const dynamic = "force-dynamic";
  * one designated address rather than all of them.
  */
 export async function GET(request: NextRequest) {
-  const openSignin = process.env.DEMO_OPEN_SIGNIN === "true";
+  const openSignin = envFlag(process.env.DEMO_OPEN_SIGNIN);
   const demoEmail = process.env.DEMO_ACCOUNT_EMAIL?.trim().toLowerCase();
 
   if (!openSignin && !demoEmail) {
-    return NextResponse.json({ error: "Not available." }, { status: 404 });
+    // Config state, not a credential — and without it a misconfigured
+    // deployment is indistinguishable from a correctly locked-down one.
+    return NextResponse.json(
+      { error: "Not available.", reason: "demo sign-in is not enabled" },
+      { status: 404 }
+    );
   }
 
   const asked = request.nextUrl.searchParams.get("email")?.trim().toLowerCase();
@@ -46,7 +52,10 @@ export async function GET(request: NextRequest) {
 
   const allowed = openSignin || asked === demoEmail;
   if (!allowed) {
-    return NextResponse.json({ error: "Not available." }, { status: 404 });
+    return NextResponse.json(
+      { error: "Not available.", reason: "not the designated demo account" },
+      { status: 404 }
+    );
   }
 
   try {
