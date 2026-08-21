@@ -38,8 +38,10 @@ export async function requireProfile(): Promise<{
   }
 
   /*
-    On a local install, a campus nobody has seeded yet gets its sample listings
-    the first time somebody from it signs in — no button, no command.
+    A campus nobody has seeded yet gets its listings the first time somebody
+    from it signs in — no button, no command. That happens on any local
+    install, and on a deployment only for the demo account's own institution,
+    so a real campus never has anything invented on it.
 
     It lives here rather than in the (app) layout because Next renders layouts
     and pages concurrently: seeding in the layout does not finish before the
@@ -50,7 +52,14 @@ export async function requireProfile(): Promise<{
     Memoised per domain, so it costs one query per process, and deployments
     never run it at all.
   */
-  if (localInboxUrl()) await ensureDemoSeeded(profile.institution);
+  const demoInstitution =
+    process.env.DEMO_ACCOUNT_EMAIL?.split("@")[1]?.toLowerCase();
+  if (
+    localInboxUrl() ||
+    profile.institution.toLowerCase() === demoInstitution
+  ) {
+    await ensureDemoSeeded(profile.institution);
+  }
 
   return { profile, supabase };
 }

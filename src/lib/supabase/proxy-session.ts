@@ -14,6 +14,8 @@ const isPublic = (pathname: string) =>
   // Read on the verify screen, before a session exists. The route itself is
   // local-only — see app/api/dev/latest-code/route.ts.
   pathname.startsWith("/api/dev/") ||
+  // one designated demo account only — see app/api/demo-code/route.ts
+  pathname.startsWith("/api/demo-code") ||
   pathname.startsWith("/api/maintenance");
 
 /**

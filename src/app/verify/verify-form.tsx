@@ -134,6 +134,8 @@ export function VerifyForm({
             {busy ? "Sending…" : "Send code"}
           </Button>
         </form>
+
+        <DemoAccountPrompt onUse={setEmail} />
       </div>
     );
   }
@@ -160,7 +162,7 @@ export function VerifyForm({
         <span className="break-all text-ink">{email}</span>.
       </p>
 
-      <LocalInboxHint
+      <CodeHelper
         email={email}
         code={localCode}
         onCode={setLocalCode}
@@ -201,7 +203,44 @@ export function VerifyForm({
  * conclude sign-in is broken. A deployed build pointed at a hosted project
  * renders nothing here.
  */
-function LocalInboxHint({
+/**
+ * For anyone evaluating this: fills in the demo address, whose code is then
+ * shown on the next screen. Renders nothing unless a demo account is
+ * configured, so it never appears on a real campus deployment.
+ */
+function DemoAccountPrompt({ onUse }: { onUse: (email: string) => void }) {
+  const demoEmail = process.env.NEXT_PUBLIC_DEMO_ACCOUNT_EMAIL;
+  if (!demoEmail) return null;
+
+  return (
+    <div className="mt-6 rounded-xl border border-warn/25 bg-warn-soft px-3.5 py-3">
+      <p className="text-sm font-medium text-warn">Just looking round?</p>
+      <p className="mt-1 text-sm leading-relaxed text-warn">
+        Use the demo account — its sign-in code is shown on screen, so you
+        don&rsquo;t need an inbox.
+      </p>
+      <button
+        type="button"
+        onClick={() => onUse(demoEmail)}
+        className="mt-2 rounded-lg border border-warn/25 bg-surface px-3 py-2 text-sm font-medium text-warn hover:bg-warn/10"
+      >
+        Use {demoEmail}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Shows the sign-in code without needing an inbox, in two situations:
+ *
+ *   - running locally, where mail is captured by Mailpit rather than sent
+ *   - for the one designated demo account on a deployment, so somebody
+ *     evaluating this can get in without an inbox of ours
+ *
+ * Any other address on a deployment gets nothing at all — printing codes on
+ * request would be an authentication bypass, not a convenience.
+ */
+function CodeHelper({
   email,
   code,
   onCode,
@@ -213,20 +252,26 @@ function LocalInboxHint({
   onUse: (code: string) => void;
 }) {
   const inbox = localInboxUrl();
+  const demoEmail = process.env.NEXT_PUBLIC_DEMO_ACCOUNT_EMAIL?.toLowerCase();
+  const isDemoAccount = Boolean(
+    demoEmail && email.trim().toLowerCase() === demoEmail,
+  );
+  const shown = Boolean(inbox) || isDemoAccount;
 
-  // Poll the local mail catcher briefly — the email lands a moment after the
+  // Poll briefly — the email lands a moment after the
   // request returns. Gives up quietly; the code can always be typed by hand.
   useEffect(() => {
-    if (!inbox || !email || code) return;
+    if (!shown || !email || code) return;
     let cancelled = false;
     let tries = 0;
 
     const look = async () => {
       tries += 1;
       try {
-        const r = await fetch(
-          `/api/dev/latest-code?email=${encodeURIComponent(email)}`,
-        );
+        const endpoint = isDemoAccount
+          ? "/api/demo-code"
+          : "/api/dev/latest-code";
+        const r = await fetch(`${endpoint}?email=${encodeURIComponent(email)}`);
         const data = await r.json();
         if (!cancelled && data.code) {
           onCode(data.code);
@@ -242,14 +287,16 @@ function LocalInboxHint({
     return () => {
       cancelled = true;
     };
-  }, [inbox, email, code, onCode]);
+  }, [shown, isDemoAccount, email, code, onCode]);
 
-  if (!inbox) return null;
+  if (!shown) return null;
 
   return (
     <div className="mt-4 rounded-xl border border-warn/25 bg-warn-soft px-3.5 py-3">
       <p className="text-sm font-medium text-warn">
-        Running locally — that email never left this machine.
+        {inbox
+          ? "Running locally — that email never left this machine."
+          : "Demo account — no inbox needed."}
       </p>
 
       {code ? (
@@ -270,6 +317,10 @@ function LocalInboxHint({
             </button>
           </div>
         </>
+      ) : !inbox ? (
+        <p className="mt-1 text-sm leading-relaxed text-warn">
+          Fetching the code for this demo account…
+        </p>
       ) : (
         <p className="mt-1 text-sm leading-relaxed text-warn">
           Fetching your code from the local mail catcher… or read it yourself at{" "}
@@ -286,7 +337,9 @@ function LocalInboxHint({
       )}
 
       <p className="mt-2 text-[12px] text-warn/80">
-        Any address works here — it doesn&rsquo;t have to be one you own.
+        {inbox
+          ? "Any address works here — it doesn't have to be one you own."
+          : "Shown for this demo account only. Everyone else gets a code by email."}
       </p>
     </div>
   );
