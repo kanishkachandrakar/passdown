@@ -88,17 +88,20 @@ export default async function BrowsePage({
     <div className="space-y-5 pd-in">
       <LiveRefresh intervalMs={8000} />
 
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">
-          On campus right now
-        </h1>
-        <p className="mt-1 text-[15px] text-muted">
-          Everything here is a walk away and every owner is a verified student
-          at {profile.institution}. Closest first.
-        </p>
-      </div>
+      {/* Filter sits with the heading, top right, out of the way until wanted. */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">
+            On campus right now
+          </h1>
+          <p className="mt-1 text-[15px] text-muted">
+            Everything here is a walk away and every owner is a verified student
+            at {profile.institution}.
+          </p>
+        </div>
 
-      <BrowseFilters categories={[...CATEGORIES]} current={current} />
+        <BrowseFilters categories={[...CATEGORIES]} current={current} />
+      </div>
 
       {items.length === 0 ? (
         <>

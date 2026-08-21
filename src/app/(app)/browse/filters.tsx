@@ -3,12 +3,12 @@ import Link from "next/link";
 import { cx } from "@/components/ui";
 
 /**
- * Browse filters.
+ * Browse filters, behind a button.
  *
- * Plain links, not a client component: the page already receives searchParams,
- * so every option can be rendered as the URL it leads to. That keeps the whole
- * screen server-rendered, makes a filtered view shareable, and means the back
- * button behaves.
+ * Plain links inside a <details>, not a client component: the page already
+ * receives searchParams, so every option can be rendered as the URL it leads
+ * to. That keeps the screen server-rendered, makes a filtered view shareable,
+ * makes the back button behave, and means the panel opens with no JavaScript.
  */
 
 export type BrowseParams = {
@@ -19,26 +19,26 @@ export type BrowseParams = {
   condition?: string;
 };
 
-export const SORTS = [
+const SORTS = [
   { value: "close", label: "Closest" },
   { value: "new", label: "Newest" },
   { value: "soon", label: "Leaving soon" },
 ];
 
-export const LISTED = [
+const LISTED = [
   { value: "any", label: "Any time" },
   { value: "today", label: "Today" },
   { value: "week", label: "This week" },
   { value: "month", label: "This month" },
 ];
 
-export const PRICES = [
+const PRICES = [
   { value: "any", label: "Any price" },
   { value: "free", label: "Free only" },
   { value: "paid", label: "For sale" },
 ];
 
-export const CONDITIONS = [
+const CONDITIONS = [
   { value: "any", label: "Any condition" },
   { value: "like_new", label: "Like new or better" },
   { value: "good", label: "Good or better" },
@@ -53,7 +53,11 @@ const DEFAULTS: Required<BrowseParams> = {
 };
 
 /** The URL for this screen with one filter changed and the rest kept. */
-export function browseHref(current: BrowseParams, key: keyof BrowseParams, value: string) {
+export function browseHref(
+  current: BrowseParams,
+  key: keyof BrowseParams,
+  value: string
+) {
   const next = { ...DEFAULTS, ...current, [key]: value };
   const search = new URLSearchParams();
 
@@ -66,10 +70,11 @@ export function browseHref(current: BrowseParams, key: keyof BrowseParams, value
   return query ? `/browse?${query}` : "/browse";
 }
 
-export function isFiltered(current: BrowseParams) {
-  return (Object.keys(DEFAULTS) as (keyof BrowseParams)[]).some(
+/** How many filters are doing something, for the badge on the button. */
+export function activeCount(current: BrowseParams) {
+  return (Object.keys(DEFAULTS) as (keyof BrowseParams)[]).filter(
     (k) => (current[k] ?? DEFAULTS[k]) !== DEFAULTS[k]
-  );
+  ).length;
 }
 
 function Pill({
@@ -97,7 +102,7 @@ function Pill({
   );
 }
 
-function Row({
+function Group({
   title,
   options,
   current,
@@ -115,17 +120,15 @@ function Row({
       <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-faint">
         {title}
       </p>
-      <div className="-mx-4 overflow-x-auto px-4">
-        <div className="flex w-max gap-2 pb-1">
-          {options.map((o) => (
-            <Pill
-              key={o.value}
-              href={browseHref(current, paramKey, o.value)}
-              label={o.label}
-              active={activeValue === o.value}
-            />
-          ))}
-        </div>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => (
+          <Pill
+            key={o.value}
+            href={browseHref(current, paramKey, o.value)}
+            label={o.label}
+            active={activeValue === o.value}
+          />
+        ))}
       </div>
     </div>
   );
@@ -138,65 +141,100 @@ export function BrowseFilters({
   categories: string[];
   current: BrowseParams;
 }) {
-  const sort = current.sort ?? "close";
-  const listed = current.listed ?? "any";
-  const price = current.price ?? "any";
-  const condition = current.condition ?? "any";
+  const count = activeCount(current);
 
   return (
-    <div className="space-y-3 rounded-2xl border border-line bg-surface p-3.5 shadow-card">
-      <Row
-        title="Category"
-        paramKey="category"
-        current={current}
-        activeValue={current.category ?? ""}
-        options={[{ value: "", label: "All" }, ...categories.map((c) => ({ value: c, label: c }))]}
-      />
+    <details className="group relative">
+      <summary
+        className={cx(
+          "inline-flex cursor-pointer list-none items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition",
+          "[&::-webkit-details-marker]:hidden",
+          count > 0
+            ? "border-accent bg-accent-soft text-accent-strong"
+            : "border-line bg-surface text-muted hover:border-accent-line hover:text-ink"
+        )}
+      >
+        {/* sliders icon */}
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.75}
+          strokeLinecap="round"
+          aria-hidden="true"
+          className="h-4 w-4"
+        >
+          <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+          <circle cx="16" cy="7" r="2" />
+          <circle cx="10" cy="17" r="2" />
+        </svg>
+        Filter
+        {count > 0 ? (
+          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-semibold leading-5 text-white">
+            {count}
+          </span>
+        ) : null}
+        <span className="text-faint transition group-open:rotate-180" aria-hidden="true">
+          ▾
+        </span>
+      </summary>
 
-      <Row
-        title="Sort by"
-        paramKey="sort"
-        current={current}
-        activeValue={sort}
-        options={SORTS}
-      />
-
-      <Row
-        title="Listed"
-        paramKey="listed"
-        current={current}
-        activeValue={listed}
-        options={LISTED}
-      />
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Row
+      {/*
+        Anchored to the button on a wide screen; full width on a phone, where a
+        floating panel would be narrower than the options inside it.
+      */}
+      <div className="absolute right-0 z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] space-y-3.5 rounded-2xl border border-line bg-surface p-4 shadow-lift sm:w-96">
+        <Group
+          title="Sort by"
+          paramKey="sort"
+          current={current}
+          activeValue={current.sort ?? "close"}
+          options={SORTS}
+        />
+        <Group
+          title="Listed"
+          paramKey="listed"
+          current={current}
+          activeValue={current.listed ?? "any"}
+          options={LISTED}
+        />
+        <Group
           title="Price"
           paramKey="price"
           current={current}
-          activeValue={price}
+          activeValue={current.price ?? "any"}
           options={PRICES}
         />
-        <Row
+        <Group
           title="Condition"
           paramKey="condition"
           current={current}
-          activeValue={condition}
+          activeValue={current.condition ?? "any"}
           options={CONDITIONS}
         />
-      </div>
+        <Group
+          title="Category"
+          paramKey="category"
+          current={current}
+          activeValue={current.category ?? ""}
+          options={[
+            { value: "", label: "All" },
+            ...categories.map((c) => ({ value: c, label: c })),
+          ]}
+        />
 
-      {isFiltered(current) ? (
-        <div className="border-t border-line pt-3">
-          <Link
-            href="/browse"
-            scroll={false}
-            className="text-sm font-medium text-accent hover:text-accent-strong"
-          >
-            Clear all filters
-          </Link>
-        </div>
-      ) : null}
-    </div>
+        {count > 0 ? (
+          <div className="border-t border-line pt-3">
+            <Link
+              href="/browse"
+              scroll={false}
+              className="text-sm font-medium text-accent hover:text-accent-strong"
+            >
+              Clear all filters
+            </Link>
+          </div>
+        ) : null}
+      </div>
+    </details>
   );
 }

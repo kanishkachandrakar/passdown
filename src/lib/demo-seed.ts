@@ -146,30 +146,30 @@ export async function seedDemoFor(domain: string): Promise<number> {
  * Seed a campus the first time somebody from it signs in, without asking.
  *
  * An empty Browse is technically the honest state of a brand new campus, but
- * it tells a first-time visitor nothing about what the app does. Offering a
- * button was still a question they shouldn't have to answer.
+ * it tells a first-time visitor nothing about what the app does.
  *
- * Runs at most once per institution, ever: the check is "do the sample
- * accounts exist", not "are there any items", so clearing the board by hand
- * doesn't quietly refill it.
+ * Only the in-flight promise is shared, never the finished result: caching
+ * "this domain is done" means a database that gets reset underneath the running
+ * server is never re-seeded, which is exactly what happened the first time.
+ * The check below is one indexed lookup on profiles, so paying it per request
+ * is cheaper than being wrong.
  */
 
-// Domains already dealt with in this process — saves a round trip on every
-// subsequent page load. In-flight promises are shared so two simultaneous
-// requests can't both seed and collide.
-const ensured = new Map<string, Promise<void>>();
+const inFlight = new Map<string, Promise<void>>();
 
 async function alreadySeeded(domain: string): Promise<boolean> {
   const admin = createAdminClient();
-  const probe = `${DEMO_STUDENTS[0].handle}@${domain}`;
-
-  const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  return (data?.users ?? []).some((u) => u.email === probe);
+  const { data } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("email", `${DEMO_STUDENTS[0].handle}@${domain}`)
+    .maybeSingle();
+  return Boolean(data);
 }
 
 export async function ensureDemoSeeded(domain: string): Promise<void> {
-  const existing = ensured.get(domain);
-  if (existing) return existing;
+  const running = inFlight.get(domain);
+  if (running) return running;
 
   const run = (async () => {
     try {
@@ -178,10 +178,11 @@ export async function ensureDemoSeeded(domain: string): Promise<void> {
     } catch {
       // Never let sample data break a real page render. If it fails the
       // student simply sees an empty Browse, which is the truth anyway.
-      ensured.delete(domain);
+    } finally {
+      inFlight.delete(domain);
     }
   })();
 
-  ensured.set(domain, run);
+  inFlight.set(domain, run);
   return run;
 }
