@@ -3,7 +3,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 
 import { ensureDemoSeeded } from "./demo-seed";
-import { localInboxUrl } from "./local-dev";
+import { envFlag, localInboxUrl } from "./local-dev";
 import { createClient } from "./supabase/server";
 import type { Profile } from "./types";
 
@@ -52,10 +52,25 @@ export async function requireProfile(): Promise<{
     Memoised per domain, so it costs one query per process, and deployments
     never run it at all.
   */
-  const demoInstitution =
-    process.env.DEMO_ACCOUNT_EMAIL?.split("@")[1]?.toLowerCase();
+  const demoInstitution = (
+    process.env.DEMO_ACCOUNT_EMAIL ?? process.env.NEXT_PUBLIC_DEMO_ACCOUNT_EMAIL
+  )
+    ?.split("@")[1]
+    ?.toLowerCase();
+  /*
+    Open sign-in lets anyone in under any domain, so pinning this to the demo
+    account's institution meant a judge signing in as judge@ox.ac.uk landed on
+    a campus with nothing on it — Browse empty, matching with nothing to match.
+    While that flag is on, every institution that shows up gets seeded; the
+    listings are labelled Demo Campus Preview either way. With it off this is
+    unchanged, and a real campus still never has anything invented on it.
+  */
+  const openSignin =
+    envFlag(process.env.DEMO_OPEN_SIGNIN) ||
+    envFlag(process.env.NEXT_PUBLIC_DEMO_OPEN_SIGNIN);
   if (
     localInboxUrl() ||
+    openSignin ||
     profile.institution.toLowerCase() === demoInstitution
   ) {
     await ensureDemoSeeded(profile.institution);
